@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>testcase - XMind 预览</title>
+  <style>
+    :root {
+      --text: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --card: #ffffff;
+      --primary: #2563eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", sans-serif;
+      color: var(--text);
+      background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+    .container {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      padding: 16px 18px 18px;
+      height: 200vh;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .meta {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 6px;
+      display: none;
+    }
+    .btn {
+      border: 0;
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: #fff;
+      background: var(--primary);
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .btn.secondary { background: #475569; }
+    .btn.ghost {
+      background: transparent;
+      color: #1d4ed8;
+      border: 1px solid rgba(191, 219, 254, 0.95);
+    }
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(10px);
+      padding: 12px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+    /* Ensure the canvas really grows with 200vh container */
+    .panel, #mindWrap, #mind {
+      min-height: 0;
+    }
+    .msg {
+      margin: 0;
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 13px;
+      display: none;
+    }
+    .msg.error {
+      border-color: #fecaca;
+      background: #fef2f2;
+      color: #b91c1c;
+    }
+    #mindWrap {
+      width: 100%;
+      height: 100%;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fff;
+      position: relative;
+      touch-action: none;
+    }
+    #mind {
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+      touch-action: none;
+    }
+    #mind:active {
+      cursor: grabbing;
+    }
+    .toolbar {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1 style="margin:0;">testcase · XMind 预览</h1>
+        <div id="meta" class="meta"></div>
+      </div>
+      <div class="toolbar">
+        <a id="backLink" href="./markdown_preview.html" class="btn secondary">返回 Markdown</a>
+      </div>
+    </div>
+    <div id="msg" class="msg"></div>
+    <div class="panel">
+      <div id="mindWrap">
+        <svg id="mind"></svg>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- markmap: use UMD globals (window.markmap) -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script src="https://cdn.jsdelivr.net/npm/markmap-lib"></script>
+  <script src="https://cdn.jsdelivr.net/npm/markmap-view"></script>
+  <script src="./js/testcase_api_base.js"></script>
+  <script type="module">
+    const apiBase = resolveTestCaseApiBase();
+
+    let currentMarkdown = "";
+    let currentMindFileName = "mind.xmind";
+    let markmapInstance = null;
+
+    function showMsg(text, isError = false) {
+      const el = document.getElementById("msg");
+      el.textContent = text;
+      el.style.display = "block";
+      el.classList.toggle("error", isError);
+    }
+
+    function hideMsg() {
+      const el = document.getElementById("msg");
+      el.textContent = "";
+      el.style.display = "none";
+      el.classList.remove("error");
+    }
+
+    function kindLabel(kind) {
+      const mapping = {
+        "requirement": "飞书文档解析结果",
+        "check-items": "检查项确认结果",
+        "test-case": "测试用例"
+      };
+      return mapping[kind] || kind;
+    }
+
+    function adoptedTestCaseTitle(taskDetail) {
+      const title = taskDetail?.task?.adopted_test_case_title;
+      return typeof title === "string" ? title.trim() : "";
+    }
+
+    function resolveDisplayLabel(kind, taskDetail) {
+      if (kind === "test-case") {
+        const custom = adoptedTestCaseTitle(taskDetail);
+        if (custom) return custom;
+      }
+      return kindLabel(kind);
+    }
+
+    function safeDownloadBaseName(name, fallback) {
+      const cleaned = String(name || "").replace(/[\\/:*?"<>|]/g, "_").trim();
+      return cleaned || fallback;
+    }
+
+    function buildCheckItemsMarkdown(taskId, checkItems) {
+      if (!checkItems || checkItems.length === 0) {
+        return `# 检查项确认结果\n\n> task_id: ${taskId}\n\n暂无检查项。`;
+      }
+      const lines = [
+        "# 检查项确认结果",
+        "",
+        `> task_id: ${taskId}`,
+        ""
+      ];
+      checkItems.forEach(item => {
+        const value = (item.confirmed_text ?? item.matched_text ?? "").trim();
+        const src = item.match_source || "—";
+        const edited = item.is_edited ? "；已手动编辑" : "";
+        lines.push(`- **${item.item_text}** = ${value || "（未确认）"}（来源：${src}${edited}）`);
+      });
+      return lines.join("\n");
+    }
+
+    async function fetchTask(taskId) {
+      let resp;
+      try {
+        resp = await fetch(`${apiBase.replace(/\/$/, "")}/tasks/${encodeURIComponent(taskId)}`);
+      } catch (err) {
+        throw new Error(`无法连接后端 ${apiBase}：${err instanceof Error ? err.message : String(err)}`);
+      }
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(data.detail || `请求失败（HTTP ${resp.status}）`);
+      }
+      return data;
+    }
+
+    function parseMarkdownToTree(md) {
+      const lines = String(md || "").split(/\r?\n/);
+      const root = { title: "Root", children: [] };
+      const stack = [{ level: 0, node: root }];
+
+      function pushNode(level, title) {
+        const node = { title: title || "（空）", children: [] };
+        while (stack.length && stack[stack.length - 1].level >= level) stack.pop();
+        const parent = stack[stack.length - 1]?.node || root;
+        parent.children.push(node);
+        stack.push({ level, node });
+      }
+
+      for (const raw of lines) {
+        const line = raw.trim();
+        const m = /^(#{1,6})\s+(.*)$/.exec(line);
+        if (m) {
+          pushNode(m[1].length, m[2].trim());
+        }
+      }
+
+      // Fallback: no headings, use first non-empty line as a child node
+      if (root.children.length === 0) {
+        const first = lines.map(s => String(s || "").trim()).find(s => s);
+        if (first) root.children.push({ title: first.slice(0, 80), children: [] });
+      }
+      return root;
+    }
+
+    async function renderMindPreview(md) {
+      // Markmap preview from markdown (closest to "xmind预览" without native viewer)
+      const mm = (typeof window !== "undefined" && window.markmap) || null;
+      if (!mm) {
+        throw new Error("markmap 依赖未加载：请检查网络或 CDN 是否可用。");
+      }
+      const Transformer = mm.Transformer || null;
+      const Markmap = mm.Markmap || null;
+      if (!Transformer || !Markmap) {
+        throw new Error("markmap 组件缺失：Transformer/Markmap 未找到。");
+      }
+      const transformer = new Transformer();
+      const { root } = transformer.transform(md || "# （无内容）");
+      const svg = document.getElementById("mind");
+      const wrap = document.getElementById("mindWrap");
+      if (wrap) {
+        const rect = wrap.getBoundingClientRect();
+        // Use explicit pixel size to avoid 0-height layout issues (which may lock vertical panning)
+        const w = Math.max(320, Math.floor(rect.width || 0));
+        const h = Math.max(240, Math.floor(rect.height || 0));
+        svg.setAttribute("width", String(w));
+        svg.setAttribute("height", String(h));
+      }
+      svg.innerHTML = "";
+      // Important: disable autoFit so large content doesn't get shrunk into an unreadable blob.
+      markmapInstance = Markmap.create(svg, { zoom: true, pan: true, autoFit: false }, root);
+      // Start with a readable scale, then center the root node.
+      try {
+        if (markmapInstance && typeof markmapInstance.rescale === "function") {
+          await markmapInstance.rescale(1);
+        }
+        const rootNode = markmapInstance && markmapInstance.state ? markmapInstance.state.data : null;
+        if (rootNode && typeof markmapInstance.centerNode === "function") {
+          await markmapInstance.centerNode(rootNode);
+        }
+      } catch {
+        // ignore (best-effort)
+      }
+    }
+
+    async function init() {
+      const params = new URLSearchParams(window.location.search);
+      const taskId = params.get("task_id");
+      const kind = params.get("kind");
+      if (!taskId || !kind) {
+        showMsg("缺少 task_id 或 kind 参数。", true);
+        return;
+      }
+
+      const label = kindLabel(kind);
+      document.title = `testcase - ${label} - XMind 预览`;
+      currentMindFileName = `${kind}-${taskId}.xmind`;
+      document.getElementById("backLink").href =
+        `./markdown_preview.html?task_id=${encodeURIComponent(taskId)}&kind=${encodeURIComponent(kind)}`;
+
+      try {
+        hideMsg();
+        const task = await fetchTask(taskId);
+        const displayLabel = resolveDisplayLabel(kind, task);
+        document.title = `testcase - ${displayLabel} - XMind 预览`;
+        if (kind === "test-case") {
+          currentMindFileName = `${safeDownloadBaseName(displayLabel, kind + "-" + taskId)}.xmind`;
+        }
+
+        if (kind === "requirement") {
+          currentMarkdown = task.requirement_markdown || "# 飞书文档解析结果\n\n暂无内容。";
+        } else if (kind === "check-items") {
+          currentMarkdown = buildCheckItemsMarkdown(taskId, task.check_items || []);
+        } else if (kind === "test-case") {
+          currentMarkdown = task.generated_testcase_markdown || "# 测试用例\n\n暂无内容。";
+        } else {
+          throw new Error(`不支持的 kind: ${kind}`);
+        }
+
+        await renderMindPreview(currentMarkdown);
+        hideMsg();
+      } catch (err) {
+        showMsg(err instanceof Error ? err.message : String(err), true);
+      }
+
+      // Resize -> keep SVG pixel size in sync; don't auto-fit (keeps text readable)
+      window.addEventListener("resize", () => {
+        try {
+          const svg = document.getElementById("mind");
+          const wrap = document.getElementById("mindWrap");
+          if (!svg || !wrap) return;
+          const rect = wrap.getBoundingClientRect();
+          const w = Math.max(320, Math.floor(rect.width || 0));
+          const h = Math.max(240, Math.floor(rect.height || 0));
+          svg.setAttribute("width", String(w));
+          svg.setAttribute("height", String(h));
+        } catch {
+          // ignore
+        }
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>

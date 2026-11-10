@@ -1,0 +1,2588 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>testcase - 工作台</title>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --line: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --active: #2563eb;
+      --active-soft: #eff6ff;
+      --done: #16a34a;
+      --warn: #dc2626;
+      --sidebar-bg1: #0f172a;
+      --sidebar-bg2: #1e293b;
+      --sidebar-text: #94a3b8;
+      --sidebar-highlight: #f8fafc;
+      --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+      --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.06);
+      --shadow-lg: 0 12px 40px -12px rgba(15, 23, 42, 0.12);
+      --radius-panel: 20px;
+      --radius-card: 14px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(1200px 600px at 85% -10%, rgba(99, 102, 241, 0.09), transparent 55%),
+        radial-gradient(900px 480px at -5% 40%, rgba(59, 130, 246, 0.07), transparent 50%),
+        linear-gradient(180deg, #f8fafc 0%, #eef2ff 48%, #f1f5f9 100%);
+      color: var(--text);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    .app-shell {
+      display: flex;
+      min-height: 100vh;
+      align-items: flex-start;
+      width: 100%;
+      max-width: 100%;
+    }
+    .sidebar {
+      width: 232px;
+      flex-shrink: 0;
+      background: linear-gradient(175deg, var(--sidebar-bg1) 0%, var(--sidebar-bg2) 55%, #0f172a 100%);
+      border-right: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 24px 0 32px;
+      box-shadow: 8px 0 40px rgba(15, 23, 42, 0.18);
+      position: sticky;
+      top: 0;
+      align-self: flex-start;
+      z-index: 30;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 20px 20px;
+      margin-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--sidebar-highlight);
+      letter-spacing: 0.02em;
+    }
+    .sidebar-brand::before {
+      content: "";
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      flex-shrink: 0;
+      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.45);
+    }
+    .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 0 14px;
+    }
+    .sidebar-link {
+      display: block;
+      padding: 12px 16px;
+      border-radius: 10px;
+      color: var(--sidebar-text);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+    }
+    .sidebar-link:hover:not(.active) {
+      background: rgba(255, 255, 255, 0.06);
+      color: #e2e8f0;
+    }
+    .sidebar-link.active {
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(
+        90deg,
+        rgba(59, 130, 246, 0.35) 0%,
+        rgba(30, 64, 175, 0.22) 100%
+      );
+      box-shadow: inset 3px 0 0 #60a5fa;
+    }
+    .sidebar-link.active:hover {
+      background: linear-gradient(
+        90deg,
+        rgba(59, 130, 246, 0.48) 0%,
+        rgba(30, 64, 175, 0.32) 100%
+      );
+      color: #fff;
+    }
+    .sidebar-link:focus-visible {
+      outline: 2px solid rgba(96, 165, 250, 0.8);
+      outline-offset: 2px;
+    }
+    .app-main {
+      flex: 1;
+      min-width: 0;
+      padding: 28px 32px 40px;
+    }
+    .container {
+      max-width: 1440px;
+      margin: 0;
+      padding: 0;
+    }
+    .panel {
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+      border-radius: var(--radius-panel);
+      border: 1px solid rgba(226, 232, 240, 0.85);
+      box-shadow: var(--shadow-sm), var(--shadow-lg);
+      padding: 32px 40px 44px;
+    }
+    .task-meta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #475569;
+      background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-sm);
+    }
+    .muted {
+      color: var(--muted);
+    }
+    .stepper {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(180px, 1fr));
+      margin: 26px 0 30px;
+      gap: 14px;
+      align-items: stretch;
+    }
+    .step {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-card);
+      padding: 16px 18px;
+      background: #fff;
+      cursor: pointer;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+      box-shadow: var(--shadow-sm);
+    }
+    .step:hover {
+      border-color: #cbd5e1;
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+    .step.active {
+      border-color: rgba(59, 130, 246, 0.45);
+      background: linear-gradient(180deg, #eff6ff 0%, #fff 65%);
+      box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.12), var(--shadow-md);
+    }
+    .step.completed {
+      border-color: rgba(34, 197, 94, 0.35);
+      background: linear-gradient(180deg, #f0fdf4 0%, #fff 70%);
+    }
+    .step-index {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      color: white;
+      margin-right: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      background: #cbd5e1;
+    }
+    .step.active .step-index {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+    }
+    .step.completed .step-index {
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
+    }
+    .step-title { font-weight: 700; font-size: 15px; letter-spacing: -0.02em; }
+    .step-desc { display: none; }
+
+    /* keep 1-2-3-4 in one line; allow horizontal scroll when narrow */
+    .stepper {
+      overflow-x: auto;
+      scrollbar-width: thin;
+      padding-bottom: 2px;
+    }
+    .stepper::-webkit-scrollbar { height: 8px; }
+    .stepper::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.45);
+      border-radius: 999px;
+    }
+    .stepper::-webkit-scrollbar-track { background: transparent; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 900px) {
+      .app-shell {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+        min-height: 0;
+        border-right: 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 12px 16px 16px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+        position: sticky;
+        top: 0;
+        z-index: 30;
+      }
+      .sidebar-brand {
+        padding: 0 4px 12px;
+        margin-bottom: 8px;
+      }
+      .sidebar-nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+        padding: 0;
+        gap: 8px;
+      }
+      .sidebar-link {
+        padding: 8px 14px;
+      }
+      .app-main {
+        padding: 18px 16px 28px;
+      }
+      .grid { grid-template-columns: 1fr; }
+    }
+    .card {
+      border: 1px solid rgba(226, 232, 240, 0.95);
+      border-radius: var(--radius-card);
+      padding: 22px 24px;
+      background: linear-gradient(180deg, #fafbfc 0%, #ffffff 48%);
+      box-shadow: var(--shadow-sm);
+    }
+    .card h3 {
+      margin: 0 0 10px;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .card-header h3 {
+      margin: 0;
+    }
+    .card-header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    /* Step 3 polish */
+    #step3Section .grid { grid-template-columns: 1fr; }
+    #step3Section .card { max-width: none; }
+    #step3Section .card { margin-right: 0; }
+    #step3Section .card { margin-left: 0; }
+    #step3Section .card-header { margin-bottom: 18px; }
+    #step3Section .card-header { justify-content: flex-start; }
+    #step3Section .card-header-actions { margin-left: 14px; }
+    #step3Section .card-header h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+    #step3Section .form-row { margin-bottom: 22px; }
+    #step3Section .form-row.compact { margin-bottom: 18px; }
+    #step3Section label { font-size: 13px; }
+    #step3Section .pill { margin-left: 6px; }
+    .tc-type-grid {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      flex-wrap: nowrap;
+      white-space: nowrap;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+    .tc-type-grid label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px !important;
+      white-space: nowrap;
+    }
+    .tc-type-grid input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+    }
+    .tc-type-grid::-webkit-scrollbar { height: 8px; }
+    .tc-type-grid::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.35);
+      border-radius: 999px;
+    }
+    .tc-type-grid::-webkit-scrollbar-track { background: transparent; }
+    .rule-radio-list input[type="radio"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--active);
+      margin: 0;
+      flex: 0 0 auto;
+    }
+    .rule-radio-list .multi-list-item {
+      display: grid;
+      grid-template-columns: 18px 1fr;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+    }
+    .rule-radio-list .multi-list-item a {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+      color: #334155;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: var(--shadow-sm);
+    }
+    .gen-progress {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12.5px;
+      line-height: 1.55;
+      background: radial-gradient(900px 420px at 50% 0%, rgba(59, 130, 246, 0.08), transparent 55%), #0b1220;
+      color: #e5e7eb;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.35), var(--shadow-md);
+    }
+    .gen-progress::selection { background: rgba(59, 130, 246, 0.35); }
+    .form-row.compact { margin-bottom: 14px; }
+
+    /* Step 4 polish */
+    #step4Section .grid { grid-template-columns: 1fr; }
+    #step4Section .card { max-width: none; margin-left: 0; margin-right: 0; }
+    #step4Section .form-row {
+      margin-bottom: 22px;
+      grid-template-columns: 220px 1fr;
+      column-gap: 22px;
+    }
+    #step4Section .form-row label { white-space: nowrap; }
+    .adopt-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+    }
+    #step4Section .adopt-row input {
+      max-width: 720px;
+    }
+    @media (max-width: 900px) {
+      .adopt-row { grid-template-columns: 1fr; }
+    }
+    label {
+      font-weight: 600;
+      display: block;
+      font-size: 13px;
+      color: #334155;
+      letter-spacing: 0.03em;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 14px 18px;
+      align-items: start;
+      margin-bottom: 20px;
+    }
+    .form-row label {
+      margin: 8px 0 0;
+    }
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 11px 12px;
+      font-size: 14px;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    input:focus-visible,
+    textarea:focus-visible,
+    select:focus-visible {
+      outline: none;
+      border-color: rgba(59, 130, 246, 0.55);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+    textarea { min-height: 88px; resize: vertical; }
+    select[multiple] { min-height: 132px; }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .multi-list {
+      border: none;
+      border-radius: 12px;
+      background: #fff;
+      min-height: 120px;
+      max-height: 180px;
+      overflow: auto;
+      padding: 10px 12px;
+      box-shadow: inset 0 0 0 1px #e2e8f0;
+    }
+    .multi-list-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 4px 0;
+      padding: 9px 12px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      font-size: 14px;
+      color: #1e293b;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .multi-list-item:hover {
+      background: #f8fafc;
+      border-color: #e2e8f0;
+    }
+    .multi-list-item input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #2563eb;
+      margin: 0;
+      flex: 0 0 auto;
+    }
+    .multi-list-item span {
+      word-break: break-word;
+      line-height: 1.3;
+    }
+    .multi-list-item a {
+      color: #2563eb;
+      text-decoration: none;
+      line-height: 1.35;
+      font-weight: 500;
+    }
+    .multi-list-item a:hover {
+      color: #1d4ed8;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .multi-list-item input[type="checkbox"]:checked + a {
+      color: #1d4ed8;
+      font-weight: 600;
+    }
+    .multi-list-empty {
+      color: var(--muted);
+      font-size: 13px;
+      padding: 12px 10px;
+    }
+    .knowledge-groups {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .knowledge-row {
+      display: grid;
+      grid-template-columns: minmax(140px, 220px) 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+    .knowledge-inline-head {
+      font-size: 13px;
+      font-weight: 600;
+      margin: 8px 0 0;
+      color: var(--text);
+      line-height: 1.35;
+    }
+    .knowledge-inline-head .knowledge-path {
+      display: block;
+      margin-left: 0;
+      margin-top: 4px;
+    }
+    .knowledge-path {
+      font-weight: 400;
+      color: var(--muted);
+      font-size: 12px;
+      margin-left: 8px;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 22px;
+    }
+    .step2-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 0;
+    }
+    .step2-toolbar .step2-upload {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      min-width: 200px;
+    }
+    .step2-toolbar #step2NextBtn {
+      flex-shrink: 0;
+    }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 11px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #fff;
+      background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+      box-shadow: var(--shadow-sm), 0 8px 20px -6px rgba(37, 99, 235, 0.45);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md), 0 10px 24px -6px rgba(37, 99, 235, 0.5);
+    }
+    button.secondary {
+      background: linear-gradient(180deg, #64748b 0%, #475569 100%);
+      box-shadow: var(--shadow-sm), 0 6px 16px -4px rgba(71, 85, 105, 0.45);
+    }
+    button.success {
+      background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+      box-shadow: var(--shadow-sm), 0 8px 20px -6px rgba(22, 163, 74, 0.4);
+    }
+    button.warn {
+      background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+      box-shadow: var(--shadow-sm), 0 6px 16px -4px rgba(245, 158, 11, 0.45);
+    }
+    button:disabled {
+      opacity: 1;
+      cursor: not-allowed;
+      background: #cbd5e1 !important;
+      color: #f8fafc;
+    }
+    .hidden { display: none; }
+    .msg {
+      margin-top: 14px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #eff6ff 0%, #f8fafc 100%);
+      border: 1px solid rgba(191, 219, 254, 0.95);
+      color: #1e40af;
+      font-size: 13px;
+      box-shadow: var(--shadow-sm);
+    }
+    .msg.error {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: var(--warn);
+    }
+    .preview, .markdown {
+      margin-top: 10px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px 16px;
+      background: linear-gradient(180deg, #fafbfc 0%, #fff 40%);
+      max-height: 360px;
+      overflow: auto;
+      font-size: 14px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      box-shadow: var(--shadow-sm);
+    }
+    #step4Section .markdown { max-height: 520px; }
+    .markdown h1, .markdown h2, .markdown h3 { margin-top: 0.6em; }
+    .check-item {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      background: #fff;
+      box-shadow: var(--shadow-sm);
+    }
+    .check-item-title { font-weight: 600; margin-bottom: 8px; }
+    .check-item small { color: var(--muted); }
+    .source-chip {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+      background: #f8fafc;
+      vertical-align: middle;
+    }
+    .source-ai {
+      border-color: #93c5fd;
+      color: #1d4ed8;
+      background: #eff6ff;
+    }
+    .source-rule {
+      border-color: #86efac;
+      color: #166534;
+      background: #f0fdf4;
+    }
+    .source-empty {
+      border-color: #fecaca;
+      color: #b91c1c;
+      background: #fef2f2;
+    }
+    .source-edited {
+      border-color: #e2e8f0;
+      color: #64748b;
+      background: #f1f5f9;
+    }
+    .source-corrected {
+      border-color: #fcd34d;
+      color: #b45309;
+      background: #fffbeb;
+    }
+    .source-memory {
+      border-color: #c4b5fd;
+      color: #5b21b6;
+      background: #f5f3ff;
+    }
+    .check-item-source-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      margin-top: 4px;
+    }
+    .kv-key-with-meta {
+      min-width: 0;
+    }
+    .kv-row {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .kv-key {
+      font-weight: 600;
+      color: #1f2937;
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 9px 10px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .kv-eq {
+      color: #94a3b8;
+      font-weight: 700;
+      margin: 0 2px;
+    }
+    .kv-value-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .kv-value {
+      width: 100%;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 9px 10px;
+      font-size: 14px;
+      background: #fff;
+    }
+    .requirement-url-field {
+      display: flex;
+      align-items: stretch;
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      background: #fff;
+      overflow: hidden;
+      min-height: 44px;
+      box-sizing: border-box;
+      box-shadow: inset 0 0 0 1px #e2e8f0;
+      transition: box-shadow 0.15s ease;
+    }
+    .requirement-url-field:focus-within {
+      box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.45), 0 0 0 3px rgba(59, 130, 246, 0.12);
+    }
+    .requirement-url-field--resolving {
+      opacity: 0.7;
+      cursor: wait;
+    }
+    .requirement-url-field--locked .requirement-url-field__main {
+      background: #f9fafb;
+    }
+    .requirement-url-field__main {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+    }
+    .requirement-url-field__input {
+      width: 100%;
+      border: 0 !important;
+      border-radius: 0 !important;
+      padding: 10px 12px !important;
+      font-size: 14px;
+      outline: none;
+      box-shadow: none !important;
+      background: transparent;
+    }
+    .requirement-url-field__locked {
+      flex: 1;
+      min-width: 0;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+    }
+    .requirement-url-field__locked a {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #1d4ed8;
+      text-decoration: none;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    .requirement-url-field__locked a:hover {
+      color: #1e40af;
+    }
+    .requirement-url-field__clear {
+      flex-shrink: 0;
+      align-self: stretch;
+      margin: 0;
+      padding: 0 16px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 0;
+      border-left: 1px solid #e2e8f0;
+      border-radius: 0;
+      background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+      color: #64748b;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .requirement-url-field__clear:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+    @media (max-width: 900px) {
+      .knowledge-row {
+        grid-template-columns: 1fr;
+      }
+      .knowledge-inline-head {
+        margin-top: 0;
+      }
+      .kv-row {
+        grid-template-columns: 1fr;
+      }
+      .kv-key {
+        white-space: normal;
+      }
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+      .form-row label {
+        margin-top: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="sidebar-brand">testcase</div>
+      <nav class="sidebar-nav">
+        <a href="./test_case_generator.html" class="sidebar-link active" aria-current="page">工作台</a>
+        <a href="./history_tasks.html" class="sidebar-link">历史记录</a>
+        <a href="./flow_management.html" class="sidebar-link">流程配置</a>
+        <a href="./skills_tools.html" class="sidebar-link">技能工具</a>
+      </nav>
+    </aside>
+    <main class="app-main">
+  <div class="container">
+    <div class="panel">
+      <div id="taskMeta" class="task-meta">任务编号: - | 状态: 未创建</div>
+
+      <div class="stepper">
+        <div class="step active" id="stepNode1">
+          <div><span class="step-index">1</span><span class="step-title">需求确认</span></div>
+          <div class="step-desc">解析飞书需求，识别对接类型并确认检查项。</div>
+        </div>
+        <div class="step" id="stepNode2">
+          <div><span class="step-index">2</span><span class="step-title">对接文档确认</span></div>
+          <div class="step-desc">自动加载或上传对接接口文档（Markdown）。</div>
+        </div>
+        <div class="step" id="stepNode3">
+          <div><span class="step-index">3</span><span class="step-title">生成用例</span></div>
+          <div class="step-desc">选择用例类型与规则，生成并实时查看进度。</div>
+        </div>
+        <div class="step" id="stepNode4">
+          <div><span class="step-index">4</span><span class="step-title">结果确认</span></div>
+          <div class="step-desc">预览结果并采纳保存到用例库。</div>
+        </div>
+      </div>
+
+      <section id="step1Section">
+        <div class="card">
+          <div class="form-row">
+            <label for="requirementUrl">飞书需求链接</label>
+            <div class="requirement-url-field" id="requirementUrlField">
+              <div class="requirement-url-field__main">
+                <input
+                  id="requirementUrl"
+                  class="requirement-url-field__input"
+                  type="url"
+                  placeholder="https://c60v462yqp.feishu.cn/wiki/Nq0pw1OQXXXXXXX"
+                  autocomplete="off"
+                />
+                <div id="requirementUrlLockedWrap" class="requirement-url-field__locked hidden">
+                  <a id="requirementUrlLink" href="#" target="_blank" rel="noopener noreferrer"></a>
+                </div>
+              </div>
+              <button type="button" id="requirementUrlClear" class="requirement-url-field__clear" title="清除">
+                清除
+              </button>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button id="parseRequirementBtn" type="button">开始解析</button>
+            <button id="step1NextBtn" type="button" class="secondary" disabled>下一步</button>
+          </div>
+          <div id="step1Msg" class="msg hidden"></div>
+          <label style="margin-top: 12px;">解析进度（实时）</label>
+          <pre id="step1Progress" class="preview gen-progress" style="max-height: 160px;"></pre>
+
+          <div id="step1ParsedArea" class="hidden" style="margin-top: 18px;">
+            <div class="grid">
+              <div class="card">
+                <label>解析后的需求 Markdown</label>
+                <pre id="requirementMarkdown" class="preview"></pre>
+              </div>
+              <div class="card" id="checkItemsCard">
+                <div class="card-header">
+                  <h3>检查项确认</h3>
+                </div>
+                <div id="checkItemsContainer"></div>
+                <div class="hint" id="checkItemsHint">请完善右侧输入框内容，点击「下一步」进入对接文档确认。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="step2Section" class="hidden">
+        <div class="card">
+          <div id="step2Msg" class="msg hidden"></div>
+          <div class="step2-toolbar">
+            <label class="secondary step2-upload">
+              <input id="interfaceDocUpload" type="file" accept=".md,text/markdown" style="max-width: 260px;" />
+              <span class="muted">上传 Markdown 对接文档</span>
+            </label>
+            <button id="step2NextBtn" type="button" class="success">下一步</button>
+          </div>
+          <div class="hint" id="interfaceDocHint">接口文档为可选项：系统可预览匹配的 OSI/HOMO 文档；仅在你上传 Markdown 后才会参与生成，也可直接点击「下一步」跳过。</div>
+          <div id="interfaceDocPreview" class="markdown preview" style="max-height: 520px;"></div>
+        </div>
+      </section>
+
+      <section id="step3Section" class="hidden">
+        <div class="grid">
+          <div class="card">
+            <div class="card-header">
+              <button id="generateBtn" class="success">生成测试用例</button>
+            </div>
+            <div id="step3Msg" class="msg hidden"></div>
+
+            <div class="form-row compact" style="margin-top: 8px;">
+              <label id="tcTypeSectionLabel">用例类型</label>
+              <div class="tc-type-grid">
+                <label style="display:flex;gap:8px;align-items:center;">
+                  <input id="tcTypeFlow" type="checkbox" checked disabled />
+                  <span id="tcTypeFlowLabel">基本功能</span>
+                </label>
+                <label style="display:flex;gap:8px;align-items:center;">
+                  <input id="tcTypeDb" type="checkbox" />
+                  <span>数据库表</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-row compact">
+              <label id="bizRulesSectionLabel">应用规则（自动匹配）</label>
+              <div id="bizRuleAutoBox" class="rule-auto-box"></div>
+            </div>
+
+            <div class="form-row compact">
+              <label id="demoSectionLabel">参照 Demo（自动匹配）</label>
+              <div id="demoRuleAutoBox" class="rule-auto-box"></div>
+            </div>
+
+            <label>生成过程（实时）</label>
+            <pre id="genProgress" class="preview gen-progress" style="max-height: 380px;"></pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="step4Section" class="hidden">
+        <div class="grid">
+          <div class="card">
+            <div class="form-row">
+              <label for="adoptTitle">设置测试用例标题（可选）</label>
+              <div class="adopt-row">
+                <input id="adoptTitle" placeholder="例如：支付需求v1测试用例" />
+                <button id="adoptBtn" class="success">保存用例</button>
+              </div>
+            </div>
+            <div id="step4Msg" class="msg hidden"></div>
+            <label>Markdown 预览</label>
+            <div class="actions" style="margin-top: 6px; margin-bottom: 4px;">
+              <button id="openPreviewPageBtn" class="secondary" type="button">打开新页面预览</button>
+            </div>
+            <div id="generatedPreview" class="markdown"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="./js/testcase_api_base.js"></script>
+  <script>
+    const apiBase = resolveTestCaseApiBase();
+    let currentTaskId = null;
+    let currentTaskStatus = null;
+    let currentRequirementKind = "unknown";
+    let currentRequirementMarkdown = "";
+    let currentInferredChecklistDoc = "";
+    let currentCheckItems = [];
+    let currentExternalCooperationMarkdown = "";
+    /** 本会话内用户是否上传过对接文档（另用 localStorage 持久化，避免刷新后误覆盖）。 */
+    let userUploadedInterfaceDoc = false;
+    let docOptionsCache = null;
+    let pipelineConfigCache = null;
+    /** 步骤1：失焦解析成功后保存 { url, title }，创建任务时提交 url */
+    let requirementUrlResolved = null;
+    let requirementUrlResolving = false;
+
+    /** 飞书知识库页面（/wiki/），失焦后才请求标题并进入锁定态 */
+    function isFeishuKnowledgeWikiUrl(raw) {
+      const s = String(raw || "").trim();
+      if (!s) return false;
+      let u;
+      try {
+        u = new URL(s);
+      } catch {
+        return false;
+      }
+      if (u.protocol !== "http:" && u.protocol !== "https:") return false;
+      const host = u.hostname.toLowerCase();
+      const hostOk =
+        host.endsWith(".feishu.cn") ||
+        host === "feishu.cn" ||
+        host.endsWith(".larksuite.com") ||
+        host === "larksuite.com";
+      if (!hostOk) return false;
+      return /\/wiki\/[^/?]+/i.test(u.pathname);
+    }
+
+    function getRequirementUrlValue() {
+      if (requirementUrlResolved && requirementUrlResolved.url) {
+        return String(requirementUrlResolved.url).trim();
+      }
+      const input = document.getElementById("requirementUrl");
+      return input ? input.value.trim() : "";
+    }
+
+    function applyRequirementUrlResolved(data) {
+      requirementUrlResolved = { url: data.url, title: data.title };
+      const input = document.getElementById("requirementUrl");
+      const field = document.getElementById("requirementUrlField");
+      const lockedWrap = document.getElementById("requirementUrlLockedWrap");
+      const link = document.getElementById("requirementUrlLink");
+      input.disabled = true;
+      input.classList.add("hidden");
+      field.classList.remove("requirement-url-field--resolving");
+      field.classList.add("requirement-url-field--locked");
+      link.href = data.url;
+      link.textContent = data.title || data.url;
+      lockedWrap.classList.remove("hidden");
+    }
+
+    function clearRequirementUrlResolved() {
+      requirementUrlResolved = null;
+      const input = document.getElementById("requirementUrl");
+      const field = document.getElementById("requirementUrlField");
+      const lockedWrap = document.getElementById("requirementUrlLockedWrap");
+      const step1Msg = document.getElementById("step1Msg");
+      input.value = "";
+      input.disabled = false;
+      input.readOnly = false;
+      input.classList.remove("hidden");
+      field.classList.remove("requirement-url-field--locked", "requirement-url-field--resolving");
+      lockedWrap.classList.add("hidden");
+      if (step1Msg) step1Msg.classList.add("hidden");
+      input.focus();
+    }
+
+    function onRequirementUrlClearClick() {
+      if (requirementUrlResolved) {
+        clearRequirementUrlResolved();
+        return;
+      }
+      const input = document.getElementById("requirementUrl");
+      const step1Msg = document.getElementById("step1Msg");
+      input.value = "";
+      if (step1Msg) step1Msg.classList.add("hidden");
+      input.focus();
+    }
+
+    async function onRequirementUrlBlur() {
+      if (requirementUrlResolved) return;
+      const input = document.getElementById("requirementUrl");
+      if (input.classList.contains("hidden")) return;
+      const raw = input.value.trim();
+      if (!raw) return;
+      if (!isFeishuKnowledgeWikiUrl(raw)) return;
+      if (requirementUrlResolving) return;
+
+      requirementUrlResolving = true;
+      input.readOnly = true;
+      document.getElementById("requirementUrlField").classList.add("requirement-url-field--resolving");
+      try {
+        const data = await apiRequest(
+          `/feishu/url-preview?url=${encodeURIComponent(raw)}`
+        );
+        applyRequirementUrlResolved(data);
+      } catch (err) {
+        showMsg("step1Msg", err.message || String(err), true);
+      } finally {
+        requirementUrlResolving = false;
+        if (!requirementUrlResolved) {
+          input.readOnly = false;
+          document.getElementById("requirementUrlField").classList.remove("requirement-url-field--resolving");
+        }
+      }
+    }
+
+    /** 与后端 TaskStatus 一致，展示为中文 */
+    function statusLabelZh(status) {
+      const mapping = {
+        draft: "草稿",
+        parsed_confirming: "待确认",
+        generating: "生成中",
+        generated: "已生成",
+        adopted: "已采纳"
+      };
+      if (!status) return "-";
+      return mapping[status] || status;
+    }
+
+    function getSelectedValues(listId) {
+      const list = document.getElementById(listId);
+      if (!list) return [];
+      return Array.from(list.querySelectorAll("input[type='checkbox']:checked")).map(cb => cb.value);
+    }
+
+    function getSelectedKnowledgeDocs() {
+      return [
+        ...getSelectedValues("knowledgeDocsBiz"),
+        ...getSelectedValues("knowledgeDocsInterface"),
+        ...getSelectedValues("knowledgeDocsDb")
+      ];
+    }
+
+    function fillMultiList(listId, items, preferred = [], opts = {}) {
+      const ensureAtLeastOne = opts.ensureAtLeastOne === true;
+      const list = document.getElementById(listId);
+      if (!list) return;
+      list.innerHTML = "";
+
+      if (!items || items.length === 0) {
+        list.innerHTML = '<div class="multi-list-empty">暂无可选文件</div>';
+        return;
+      }
+
+      const preferredSet = new Set((preferred || []).filter(p => items.includes(p)));
+
+      items.forEach((item, idx) => {
+        const checkboxId = `${listId}_${idx}`;
+        const label = document.createElement("label");
+        label.className = "multi-list-item";
+        label.setAttribute("for", checkboxId);
+
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.id = checkboxId;
+        input.value = item;
+        input.checked = preferredSet.has(item);
+
+        const fileName = item.split("/").pop() || item;
+        const text = document.createElement("a");
+        text.textContent = fileName;
+        text.href = `./markdown_file_preview.html?path=${encodeURIComponent(item)}`;
+        text.target = "_blank";
+        text.rel = "noopener noreferrer";
+        text.addEventListener("click", (event) => event.stopPropagation());
+
+        label.appendChild(input);
+        label.appendChild(text);
+        list.appendChild(label);
+      });
+
+      if (
+        ensureAtLeastOne &&
+        list.querySelectorAll("input[type='checkbox']:checked").length === 0
+      ) {
+        const first = list.querySelector("input[type='checkbox']");
+        if (first) first.checked = true;
+      }
+    }
+
+    async function loadDocOptions() {
+      const data = await apiRequest("/doc-options");
+      fillMultiList("knowledgeDocsBiz", data.knowledge_biz_docs || [], []);
+      fillMultiList("knowledgeDocsInterface", data.knowledge_interface_docs || [], []);
+      fillMultiList("knowledgeDocsDb", data.knowledge_db_docs || [], []);
+      fillMultiList("checklistDocs", data.checklist_docs || [], []);
+      fillMultiList("ruleDocs", data.rule_docs || [], []);
+    }
+
+    function showMsg(id, text, isError = false) {
+      const el = document.getElementById(id);
+      el.textContent = text;
+      el.classList.remove("hidden");
+      if (isError) {
+        el.classList.add("error");
+      } else {
+        el.classList.remove("error");
+      }
+    }
+
+    function updateTaskMeta() {
+      const meta = document.getElementById("taskMeta");
+      const num = currentTaskId || "-";
+      const statusText =
+        currentTaskId == null || currentTaskId === ""
+          ? "未创建"
+          : statusLabelZh(currentTaskStatus);
+      const effKind = effectiveRequirementKind(currentRequirementKind, currentCheckItems, {
+        requirementMarkdown: currentRequirementMarkdown,
+        checklistDoc: currentInferredChecklistDoc || null
+      });
+      const kindText = requirementKindLabelZh(effKind);
+      meta.textContent = `任务编号: ${num} | 状态: ${statusText} | ${kindText}`;
+    }
+
+    function setStep(stepNumber) {
+      document.getElementById("step1Section").classList.toggle("hidden", stepNumber !== 1);
+      document.getElementById("step2Section").classList.toggle("hidden", stepNumber !== 2);
+      document.getElementById("step3Section").classList.toggle("hidden", stepNumber !== 3);
+      document.getElementById("step4Section").classList.toggle("hidden", stepNumber !== 4);
+
+      ["stepNode1", "stepNode2", "stepNode3", "stepNode4"].forEach((id, idx) => {
+        const step = document.getElementById(id);
+        const num = idx + 1;
+        step.classList.remove("active", "completed");
+        if (num < stepNumber) {
+          step.classList.add("completed");
+        } else if (num === stepNumber) {
+          step.classList.add("active");
+        }
+      });
+    }
+
+    async function apiRequest(path, method = "GET", body = null) {
+      const options = { method };
+      if (body !== null && body !== undefined) {
+        options.headers = { "Content-Type": "application/json" };
+        options.body = JSON.stringify(body);
+      }
+
+      let response;
+      try {
+        response = await fetch(`${apiBase.replace(/\/$/, "")}${path}`, options);
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : String(err);
+        throw new Error(`无法连接后端 ${apiBase}：${reason}`);
+      }
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.detail || `请求失败（HTTP ${response.status}）`);
+      }
+      return data;
+    }
+
+    function escapeHtml(s) {
+      if (s == null || s === "") return "";
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function checkItemSourceChips(item) {
+      const src = item.match_source || "";
+      let chipClass = "source-chip";
+      let label = src || "—";
+      if (src === "AI") {
+        chipClass += " source-ai";
+        label = "大模型";
+      } else if (src === "规则") {
+        chipClass += " source-rule";
+        label = "规则匹配";
+      } else if (src === "校正") {
+        chipClass += " source-corrected";
+        label = "规则校正";
+      } else if (src === "记忆") {
+        chipClass += " source-memory";
+        label = "长期记忆";
+      } else if (src === "空" || !src) {
+        chipClass += " source-empty";
+        label = "未自动匹配";
+      }
+      const main = `<span class="${chipClass}">来源：${escapeHtml(label)}</span>`;
+      const edited =
+        item.is_edited
+          ? `<span class="source-chip source-edited">已手动编辑</span>`
+          : "";
+      return `<div class="check-item-source-line">${main}${edited}</div>`;
+    }
+
+    function renderCheckItems(items) {
+      const container = document.getElementById("checkItemsContainer");
+      if (!items || items.length === 0) {
+        container.innerHTML = '<div class="msg">暂无检查项，请检查步骤1中选择的检查项 Markdown 文件。</div>';
+        return;
+      }
+      container.innerHTML = items.map(item => `
+        <div class="check-item" data-item-key="${escapeHtml(item.item_key)}">
+          <div class="kv-row">
+            <div class="kv-key-with-meta">
+              <div class="kv-key" title="${escapeHtml(item.item_text)}">${escapeHtml(item.item_text)}</div>
+              ${checkItemSourceChips(item)}
+            </div>
+            <div class="kv-value-wrap">
+              <span class="kv-eq">=</span>
+              <input
+                class="confirmed-input kv-value"
+                value="${escapeHtml(item.confirmed_text || "")}"
+                placeholder="${escapeHtml(item.matched_text || "")}"
+              />
+            </div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function collectCheckItemUpdates() {
+      const rows = document.querySelectorAll("#checkItemsContainer .check-item");
+      const updates = [];
+      rows.forEach(row => {
+        updates.push({
+          item_key: row.getAttribute("data-item-key"),
+          confirmed_text: row.querySelector(".confirmed-input").value
+        });
+      });
+      return updates;
+    }
+
+    function setStep1ActionButtonsState(state) {
+      const parseBtn = document.getElementById("parseRequirementBtn");
+      const nextBtn = document.getElementById("step1NextBtn");
+      if (!parseBtn || !nextBtn) return;
+      if (state === "parsing") {
+        parseBtn.disabled = true;
+        parseBtn.classList.remove("secondary");
+        nextBtn.disabled = true;
+        nextBtn.classList.add("secondary");
+        return;
+      }
+      if (state === "parsed") {
+        parseBtn.disabled = true;
+        parseBtn.classList.add("secondary");
+        nextBtn.disabled = false;
+        nextBtn.classList.remove("secondary");
+        return;
+      }
+      parseBtn.disabled = false;
+      parseBtn.classList.remove("secondary");
+      nextBtn.disabled = true;
+      nextBtn.classList.add("secondary");
+    }
+
+    async function refreshTaskDetail() {
+      if (!currentTaskId) return;
+      const detail = await apiRequest(`/tasks/${currentTaskId}`);
+      currentTaskStatus = detail.task.status;
+      currentRequirementKind = detail.task.requirement_kind || "unknown";
+      currentRequirementMarkdown = detail.requirement_markdown || "";
+      const checklistDocs = detail.task.selected_checklist_docs || [];
+      currentInferredChecklistDoc =
+        (detail.task.inferred_checklist_doc || "").trim() ||
+        (checklistDocs[0] || "");
+      currentCheckItems = detail.check_items || [];
+      currentExternalCooperationMarkdown = detail.external_cooperation_markdown || "";
+      updateTaskMeta();
+      updateKindPill();
+      if (currentRequirementMarkdown) {
+        document.getElementById("requirementMarkdown").textContent = currentRequirementMarkdown;
+      }
+      renderCheckItems(detail.check_items || []);
+      syncStep1IntegrationUi();
+      const step1Parsed =
+        Boolean(currentRequirementMarkdown) &&
+        ["parsed_confirming", "generating", "generated", "adopted"].includes(currentTaskStatus);
+      if (step1Parsed) {
+        document.getElementById("step1ParsedArea").classList.remove("hidden");
+        setStep1ActionButtonsState("parsed");
+      }
+      if (detail.generated_testcase_markdown) {
+        document.getElementById("generatedPreview").innerHTML = marked.parse(detail.generated_testcase_markdown);
+      }
+      return detail;
+    }
+
+    async function refreshLibrary() {
+      const data = await apiRequest("/test-case-library");
+      const el = document.getElementById("libraryContainer");
+      if (!el) return;
+      if (!data.length) {
+        el.textContent = "暂无已采纳测试用例。";
+        return;
+      }
+      el.innerHTML = data.map(item =>
+        `- [${item.adopted_at}] ${item.title} (task: ${item.task_id})`
+      ).join("\n");
+    }
+
+    async function ensureTaskCreated() {
+      if (currentTaskId) return;
+      const requirementUrl = getRequirementUrlValue();
+      if (!requirementUrl) {
+        throw new Error("请填写飞书需求链接");
+      }
+      const task = await apiRequest("/tasks", "POST", {
+        requirement_url: requirementUrl,
+        selected_knowledge_docs: [],
+        selected_checklist_docs: [],
+        selected_rule_docs: []
+      });
+      currentTaskId = task.id;
+      currentTaskStatus = task.status;
+      userUploadedInterfaceDoc = false;
+      updateTaskMeta();
+    }
+
+    async function parseRequirementInStep1() {
+      await ensureTaskCreated();
+      const btn = document.getElementById("parseRequirementBtn");
+      setStep1ActionButtonsState("parsing");
+      btn.textContent = "解析中...";
+      const progress = document.getElementById("step1Progress");
+      if (progress) progress.textContent = "";
+      appendStep1ProgressLine("已提交解析请求，开始解析…");
+      showMsg("step1Msg", "正在解析飞书需求并识别检查项（可在下方查看实时进度）…");
+      try {
+        const titleParam =
+          requirementUrlResolved && requirementUrlResolved.title
+            ? `?requirement_title=${encodeURIComponent(requirementUrlResolved.title)}`
+            : "";
+        const es = new EventSource(
+          `${apiBase.replace(/\/$/, "")}/tasks/${encodeURIComponent(currentTaskId)}/parse-stream${titleParam}`
+        );
+        const donePromise = new Promise((resolve, reject) => {
+          es.onmessage = (ev) => {
+            try {
+              const data = JSON.parse(ev.data || "{}");
+              if (data.stage === "error") {
+                appendStep1ProgressLine(`错误：${data.message || "解析失败"}`);
+                es.close();
+                reject(new Error(data.message || "解析失败"));
+                return;
+              }
+              appendStep1ProgressLine(`${data.stage || "progress"}：${data.message || ""}`);
+              if (data.stage === "done") {
+                es.close();
+                resolve(true);
+              }
+            } catch {
+              appendStep1ProgressLine(String(ev.data || ""));
+            }
+          };
+          es.addEventListener("end", () => {
+            es.close();
+            resolve(true);
+          });
+          es.onerror = () => {
+            es.close();
+            reject(new Error("解析进度连接失败（SSE）"));
+          };
+        });
+
+        await donePromise;
+        await refreshTaskDetail();
+        updateKindPill();
+        syncStep1IntegrationUi();
+        document.getElementById("step1ParsedArea").classList.remove("hidden");
+        setStep1ActionButtonsState("parsed");
+        btn.textContent = "开始解析";
+        const effKind = effectiveRequirementKind(currentRequirementKind, currentCheckItems, {
+          requirementMarkdown: currentRequirementMarkdown,
+          checklistDoc: currentInferredChecklistDoc || null
+        });
+        showMsg(
+          "step1Msg",
+          isIntegrationKind(effKind)
+            ? "解析完成：请确认检查项并继续。"
+            : "解析完成：本需求为其它类型，无需确认检查项，可直接进入下一步。"
+        );
+      } catch (err) {
+        setStep1ActionButtonsState("idle");
+        btn.textContent = "开始解析";
+        showMsg("step1Msg", `解析失败：${err.message || String(err)}`, true);
+      }
+    }
+
+    function isIntegrationKind(kind) {
+      return kind === "institution" || kind === "channel";
+    }
+
+    function syncStep1IntegrationUi() {
+      const effKind = effectiveRequirementKind(currentRequirementKind, currentCheckItems, {
+        requirementMarkdown: currentRequirementMarkdown,
+        checklistDoc: currentInferredChecklistDoc || null
+      });
+      const integration = isIntegrationKind(effKind);
+      const checkCard = document.getElementById("checkItemsCard");
+      if (checkCard) checkCard.classList.toggle("hidden", !integration);
+      const hint = document.getElementById("checkItemsHint");
+      if (hint) {
+        hint.textContent = integration
+          ? "请完善右侧输入框内容，点击「下一步」进入对接文档确认。"
+          : "本需求非机构/渠道对接，无需确认检查项。";
+      }
+    }
+
+    async function saveCheckItemsAndGoStep2() {
+      if (!currentTaskId) {
+        throw new Error("请先点击「开始解析」创建任务并解析需求");
+      }
+      const btn = document.getElementById("step1NextBtn");
+      btn.disabled = true;
+      btn.textContent = "正在保存...";
+      try {
+        const effKind = effectiveRequirementKind(currentRequirementKind, currentCheckItems, {
+          requirementMarkdown: currentRequirementMarkdown,
+          checklistDoc: currentInferredChecklistDoc || null
+        });
+        if (isIntegrationKind(effKind)) {
+          const items = collectCheckItemUpdates();
+          await apiRequest(`/tasks/${currentTaskId}/check-items`, "PUT", { items });
+          await refreshTaskDetail();
+        }
+        setStep(2);
+        await prepareStep2();
+      } finally {
+        btn.textContent = "下一步";
+        setStep1ActionButtonsState("parsed");
+      }
+    }
+
+    const OSI_INTERFACE_FULL = "docs/knowledge/interface/OSI标准机构对接-接口文档.md";
+    const OSI_INTERFACE_HALF_FLOW = "docs/knowledge/interface/OSI标准机构对接-半流程导下载-接口文档.md";
+    const HOMO_INTERFACE = "docs/knowledge/interface/HOMO标准渠道对接-接口文档.md";
+    const HOMO_INTERFACE_HALF = "docs/knowledge/interface/HOMO标准渠道对接-半流程导下载-接口文档.md";
+    const HOMO_INTERFACE_FULL_API = "docs/knowledge/interface/HOMO标准渠道对接-全流程API-接口文档.md";
+    const HOMO_INTERFACE_BORROW_H5 = "docs/knowledge/interface/HOMO标准渠道对接-借还H5-接口文档.md";
+
+    const DEMO_CHANNEL_HALF = "docs/demo/Demo-标准渠道-半流程导下载-对接测试用例.md";
+    const DEMO_CHANNEL_FULL_API = "docs/demo/Demo-标准渠道-全流程API对接-测试用例.md";
+    const DEMO_INST_HALF = "docs/demo/Demo-标准机构-半流程导下载-测试用例.md";
+    const DEMO_INST_BORROW_REPAY_H5 = "docs/demo/Demo-标准机构-借还H5-测试用例.md";
+
+    function isUserProvidedInterfaceDoc(taskId) {
+      if (userUploadedInterfaceDoc) return true;
+      if (!taskId || typeof localStorage === "undefined") return false;
+      return localStorage.getItem(`testCaseExternalDocUserUpload:${taskId}`) === "1";
+    }
+
+    function markUserProvidedInterfaceDoc() {
+      userUploadedInterfaceDoc = true;
+      if (currentTaskId && typeof localStorage !== "undefined") {
+        localStorage.setItem(`testCaseExternalDocUserUpload:${currentTaskId}`, "1");
+      }
+    }
+
+    function finalCheckItemText(item) {
+      if (!item) return "";
+      const c = item.confirmed_text;
+      if (c != null && String(c).trim() !== "") return String(c).trim();
+      return String(item.matched_text || "").trim();
+    }
+
+    /** 机构概要表「流程概要 / 流程摘要」列最终确认文案。 */
+    function flowSummaryValueFromCheckItems(checkItems) {
+      for (const it of checkItems || []) {
+        const label = String(it.item_text || "").trim();
+        if (label === "流程概要" || label === "流程摘要") return finalCheckItemText(it);
+        if (label.includes("流程概要") || label.includes("流程摘要")) return finalCheckItemText(it);
+      }
+      return "";
+    }
+
+    /** HUB 渠道概要表「渠道流程模式」确认值。 */
+    function channelFlowModeValueFromCheckItems(checkItems) {
+      for (const it of checkItems || []) {
+        const label = String(it.item_text || "").trim();
+        if (label === "渠道流程模式" || label.includes("渠道流程模式")) {
+          return finalCheckItemText(it);
+        }
+      }
+      return "";
+    }
+
+    function channelNameValueFromCheckItems(checkItems) {
+      for (const key of ["渠道名称", "渠道合作方", "内部渠道号"]) {
+        for (const it of checkItems || []) {
+          if ((it.item_text || "").trim() === key) return finalCheckItemText(it);
+        }
+      }
+      return "";
+    }
+
+    function interfaceDocProviderFromCheckItems(checkItems) {
+      for (const it of checkItems || []) {
+        if ((it.item_text || "").trim() === "接口文档提供方") return finalCheckItemText(it);
+      }
+      return "";
+    }
+
+    function flowModeTextForKind(kind, checkItems) {
+      if (kind === "channel") return channelFlowModeValueFromCheckItems(checkItems);
+      return flowSummaryValueFromCheckItems(checkItems);
+    }
+
+    function checkItemLabelsFromItems(checkItems) {
+      return (checkItems || []).map(it => String(it.item_text || "").trim()).filter(Boolean);
+    }
+
+    function checkItemsAsPairs(checkItems) {
+      return (checkItems || []).map(it => [
+        String(it.item_text || "").trim(),
+        finalCheckItemText(it)
+      ]);
+    }
+
+    function normalizeFlowSummaryText(s) {
+      return String(s || "")
+        .toLowerCase()
+        .replace(/\s+/g, "")
+        .replace(/\+/g, "");
+    }
+
+    function pickExistingInterfacePath(preferredNames, interfaceDocs, fallbackPath) {
+      const catalog = (interfaceDocs || []).map(p => String(p).replace(/\\/g, "/"));
+      for (const name of preferredNames || []) {
+        const target = String(name).replace(/\\/g, "/");
+        const base = target.split("/").pop();
+        const hit = catalog.find(p => p.endsWith("/" + base) || p.split("/").pop() === base);
+        if (hit) return hit;
+      }
+      const fb = String(fallbackPath || "").replace(/\\/g, "/");
+      const fbBase = fb.split("/").pop();
+      const fbHit = catalog.find(p => p === fb || p.split("/").pop() === fbBase);
+      return fbHit || fallbackPath;
+    }
+
+    function homoInterfacePathFromFlow(flowRaw, interfaceDocs) {
+      const n = normalizeFlowSummaryText(flowRaw);
+      if (isHalfFlowNormalized(n)) {
+        return pickExistingInterfacePath(
+          [HOMO_INTERFACE_HALF.split("/").pop(), HOMO_INTERFACE.split("/").pop()],
+          interfaceDocs,
+          HOMO_INTERFACE_HALF
+        );
+      }
+      const borrowH5 =
+        n.includes("借还h5") ||
+        n.includes("还款h5") ||
+        n.includes("提现/还款h5") ||
+        n.includes("提现还款h5") ||
+        (n.includes("借还") && n.includes("h5")) ||
+        (n.includes("全流程") && n.includes("借还") && n.includes("h5"));
+      if (borrowH5) {
+        return pickExistingInterfacePath(
+          [
+            HOMO_INTERFACE_BORROW_H5.split("/").pop(),
+            "HOMO标准渠道对接-全流程借还H5-接口文档.md",
+            HOMO_INTERFACE.split("/").pop()
+          ],
+          interfaceDocs,
+          HOMO_INTERFACE_BORROW_H5
+        );
+      }
+      const fullApi =
+        (n.includes("全流程") && n.includes("api") && !n.includes("半流程")) ||
+        n.includes("全流程api");
+      if (fullApi) {
+        return pickExistingInterfacePath(
+          [HOMO_INTERFACE_FULL_API.split("/").pop(), HOMO_INTERFACE.split("/").pop()],
+          interfaceDocs,
+          HOMO_INTERFACE_FULL_API
+        );
+      }
+      return pickExistingInterfacePath([HOMO_INTERFACE.split("/").pop()], interfaceDocs, HOMO_INTERFACE);
+    }
+
+    function osiInterfacePathFromFlowSummary(flowRaw) {
+      const n = normalizeFlowSummaryText(flowRaw);
+      if (!n) return OSI_INTERFACE_FULL;
+      if (isHalfFlowNormalized(n)) return OSI_INTERFACE_HALF_FLOW;
+
+      const creditApiBorrowRepayH5 =
+        (n.includes("授信") && n.includes("api") && n.includes("h5") && (n.includes("借还") || n.includes("提现") || n.includes("还款"))) ||
+        (n.includes("全流程") && n.includes("授信") && n.includes("api") && n.includes("h5")) ||
+        n.includes("借还h5") ||
+        n.includes("提现/还款h5") ||
+        n.includes("提现还款h5") ||
+        n.includes("还款h5");
+      if (creditApiBorrowRepayH5) return OSI_INTERFACE_FULL;
+
+      const fullFlowApi =
+        (n.includes("全流程") && n.includes("api") && !n.includes("半流程")) ||
+        n.includes("全流程api");
+      if (fullFlowApi) return OSI_INTERFACE_FULL;
+
+      return OSI_INTERFACE_FULL;
+    }
+
+    function checkItemsForMatching() {
+      const updates = collectCheckItemUpdates();
+      if (!updates.length) return currentCheckItems || [];
+      const byKey = new Map(updates.map(u => [u.item_key, u.confirmed_text]));
+      return (currentCheckItems || []).map(it => {
+        const uiVal = byKey.get(it.item_key);
+        if (uiVal == null) return it;
+        return { ...it, confirmed_text: uiVal };
+      });
+    }
+
+    /** 步骤2 接口文档匹配：仅用检查项流程字段，不用需求正文。 */
+    function interfaceFlowTextForMatching(kind, checkItems) {
+      const primary = flowModeTextForKind(kind, checkItems);
+      if (primary) return primary;
+
+      const chunks = [];
+      const flowFieldKeys = new Set(["渠道流程模式", "流程概要", "流程摘要"]);
+      for (const it of checkItems || []) {
+        const t = String(it.item_text || "").trim();
+        const v = finalCheckItemText(it);
+        if (!v) continue;
+        if (
+          flowFieldKeys.has(t) ||
+          t.includes("流程模式") ||
+          t.includes("流程概要") ||
+          t.includes("流程摘要")
+        ) {
+          chunks.push(v);
+        }
+      }
+      for (const it of checkItems || []) {
+        const v = finalCheckItemText(it);
+        const n = normalizeFlowSummaryText(v);
+        if (
+          n &&
+          (n.includes("半流程") ||
+            n.includes("导下载") ||
+            n.includes("全流程") ||
+            n.includes("出额") ||
+            n.includes("预授信"))
+        ) {
+          chunks.push(v);
+        }
+      }
+      return chunks.join("\n");
+    }
+
+    function matchChannelInterfaceDoc(checkItems, interfaceDocs, opts = {}) {
+      void opts;
+      const provider = interfaceDocProviderFromCheckItems(checkItems);
+      const flow = interfaceFlowTextForMatching("channel", checkItems);
+      if (provider && provider.includes("我方")) {
+        return homoInterfacePathFromFlow(flow, interfaceDocs);
+      }
+      const names = [];
+      for (const key of ["渠道名称", "渠道合作方", "内部渠道号"]) {
+        for (const it of checkItems || []) {
+          if ((it.item_text || "").trim() === key) {
+            const v = finalCheckItemText(it);
+            if (v) names.push(v);
+          }
+        }
+      }
+      const catalog = interfaceDocs || [];
+      for (const path of catalog) {
+        const base = path.split("/").pop() || path;
+        for (const name of names) {
+          if (name && base.includes(name)) return path;
+        }
+      }
+      return homoInterfacePathFromFlow(flow, catalog);
+    }
+
+    function inferredInterfaceDocPath(kind, checkItems, interfaceDocs, opts = {}) {
+      void opts;
+      if (kind === "institution") {
+        const typeVal = institutionTypeValueFromCheckItems(checkItems || []);
+        if (institutionTypeCheckItemImpliesNonStandard(typeVal)) return null;
+        const flow = interfaceFlowTextForMatching(kind, checkItems);
+        return osiInterfacePathFromFlowSummary(flow);
+      }
+      if (kind === "channel") {
+        return matchChannelInterfaceDoc(checkItems || [], interfaceDocs || [], opts);
+      }
+      return null;
+    }
+
+    function inferKindFromChecklistDoc(docPath) {
+      const p = String(docPath || "").replace(/\\/g, "/");
+      if (!p) return null;
+      if (p.includes("渠道需求检查项") || p.includes("HUB渠道") || p.includes("渠道概要")) {
+        return "channel";
+      }
+      if (p.includes("机构需求检查项") || p.includes("机构概要")) return "institution";
+      return null;
+    }
+
+    /**
+     * 机构/渠道识别优先级：检查项清单文件 > 检查项表头 > 需求解析 kind > 需求正文。
+     */
+    function inferKindFromTexts(...parts) {
+      const opts = parts.length && typeof parts[parts.length - 1] === "object" && parts[parts.length - 1]?.title !== undefined
+        ? parts.pop()
+        : {};
+      const title =
+        opts.title ||
+        (requirementUrlResolved && requirementUrlResolved.title) ||
+        "";
+      if (title.includes("机构对接") && !title.includes("渠道对接")) return "institution";
+      if (title.includes("渠道对接") && !title.includes("机构对接")) return "channel";
+
+      const combined = parts.filter(Boolean).join("\n");
+      if (!combined.trim()) return "unknown";
+      if (combined.includes("机构对接") && !combined.includes("渠道对接")) return "institution";
+      if (combined.includes("渠道对接") && !combined.includes("机构对接")) return "channel";
+      if (combined.includes("机构对接") && combined.includes("渠道对接")) {
+        if (
+          combined.includes("产品code") ||
+          combined.includes("机构编码") ||
+          combined.includes("流程概要") ||
+          combined.includes("机构名称")
+        ) {
+          return "institution";
+        }
+        if (combined.includes("内部渠道号") || combined.includes("渠道流程模式")) return "channel";
+        if (/上线范围[：:]\s*APP[、,]\s*HUB/.test(combined)) return "institution";
+        return title.includes("机构对接") ? "institution" : "channel";
+      }
+      const md = combined;
+      const t = md.toLowerCase();
+      let ch = 0;
+      let ins = 0;
+      if (/HUB_[A-Z0-9]+/i.test(md) || md.includes("内部渠道号") || md.includes("渠道流程模式")) ch += 3;
+      if (md.includes("对接渠道")) ch += 3;
+      if (md.includes("渠道名称") || md.includes("渠道合作方")) ch += 2;
+      if (md.includes("OSI标准机构") || (md.includes("标准机构") && !md.includes("非标准机构"))) ins += 3;
+      if (md.includes("机构对接") || md.includes("机构编码") || md.includes("产品code")) ins += 4;
+      if (md.includes("流程概要") || md.includes("机构概要")) ins += 2;
+      if (ch > ins && ch > 0) return "channel";
+      if (ins > ch && ins > 0) return "institution";
+      return "unknown";
+    }
+
+    function effectiveRequirementKind(requirementKind, checkItems, options) {
+      const opts = options || {};
+      const title =
+        opts.requirementTitle ||
+        (requirementUrlResolved && requirementUrlResolved.title) ||
+        "";
+      const fromText = inferKindFromTexts(
+        opts.requirementMarkdown || currentRequirementMarkdown,
+        opts.requirementUrl,
+        { title }
+      );
+      if (fromText === "institution" || fromText === "channel") return fromText;
+
+      const labels = checkItemLabelsFromItems(checkItems);
+      const institutionLabels = new Set([
+        "类型", "是否标准机构", "机构编码", "机构名称", "产品代码", "fundCode", "机构ID", "机构产品代码"
+      ]);
+      const channelLabels = new Set([
+        "接口文档提供方", "内部渠道号", "渠道名称", "渠道流程模式", "渠道合作方", "外部获客渠道编号"
+      ]);
+      if (labels.some(l => institutionLabels.has(l))) return "institution";
+      if (labels.some(l => channelLabels.has(l))) return "channel";
+
+      const fromDoc = inferKindFromChecklistDoc(opts.checklistDoc);
+      if (fromDoc) return fromDoc;
+
+      if (requirementKind === "institution" || requirementKind === "channel") return requirementKind;
+      return requirementKind || "unknown";
+    }
+
+    function isHalfFlowNormalized(n) {
+      if (!n) return false;
+      if (n.includes("半流程") || n.includes("半流程导下载")) return true;
+      if (n.includes("出额导下载") || n.includes("预授信导下载")) return true;
+      if (n.includes("出额") && n.includes("导下载")) return true;
+      if (n.includes("导下载")) {
+        const fullApi =
+          (n.includes("全流程") && n.includes("api")) || n.includes("全流程api");
+        if (fullApi && !n.includes("半流程") && !n.includes("出额")) return false;
+        return true;
+      }
+      return false;
+    }
+
+    function collectFlowModeText(kind, checkItems, opts = {}) {
+      const chunks = [];
+      const primary = flowModeTextForKind(kind, checkItems);
+      if (primary) chunks.push(primary);
+      const flowFieldKeys = new Set(["渠道流程模式", "流程概要", "流程摘要"]);
+      for (const it of checkItems || []) {
+        const t = String(it.item_text || "").trim();
+        const v = finalCheckItemText(it);
+        if (!v) continue;
+        if (
+          flowFieldKeys.has(t) ||
+          t.includes("流程模式") ||
+          t.includes("流程概要") ||
+          t.includes("流程摘要")
+        ) {
+          if (v !== primary) chunks.push(v);
+        }
+      }
+      if (!primary) {
+        for (const it of checkItems || []) {
+          const v = finalCheckItemText(it);
+          const n = normalizeFlowSummaryText(v);
+          if (
+            n &&
+            (n.includes("半流程") ||
+              n.includes("导下载") ||
+              n.includes("全流程") ||
+              n.includes("出额") ||
+              n.includes("预授信"))
+          ) {
+            chunks.push(v);
+          }
+        }
+      }
+      if (opts.title) chunks.push(String(opts.title).trim());
+      if (opts.requirementMarkdown) {
+        chunks.push(String(opts.requirementMarkdown).slice(0, 10000));
+      }
+      return chunks.join("\n");
+    }
+
+    function inferPreferredDemoPath(kind, checkItems, opts = {}) {
+      const flow = collectFlowModeText(kind, checkItems, opts);
+      const n = normalizeFlowSummaryText(flow);
+      let target = null;
+      if (kind === "channel") {
+        target = isHalfFlowNormalized(n) ? DEMO_CHANNEL_HALF : DEMO_CHANNEL_FULL_API;
+      } else if (kind === "institution") {
+        target = isHalfFlowNormalized(n) ? DEMO_INST_HALF : DEMO_INST_BORROW_REPAY_H5;
+      }
+      return target;
+    }
+
+    function filterDemoDocsByKind(allDemo, kind) {
+      const demo = (allDemo || []).filter(p => {
+        const n = String(p).replace(/\\/g, "/");
+        return n.startsWith("docs/demo/") && /\/Demo-/i.test(n) && !/HUB渠道对接测试用例骨架/i.test(n);
+      });
+      if (kind === "channel") {
+        const filtered = demo.filter(p => /渠道/.test(p.split("/").pop() || p));
+        return filtered.length ? filtered : demo;
+      }
+      if (kind === "institution") {
+        const filtered = demo.filter(p => /机构/.test(p.split("/").pop() || p));
+        return filtered.length ? filtered : demo;
+      }
+      return demo;
+    }
+
+    function inferMatchedDemoDoc(kind, checkItems, demoDocs, opts = {}) {
+      if (!isIntegrationKind(kind)) return null;
+      const preferred = inferPreferredDemoPath(kind, checkItems, opts);
+      if (!preferred) return null;
+      const catalog = filterDemoDocsByKind(demoDocs, kind);
+      const name = preferred.split("/").pop();
+      const hit = catalog.find(p => String(p).replace(/\\/g, "/").endsWith(name));
+      return hit || null;
+    }
+
+    function bizRulesDocForKind(kind) {
+      if (kind === "institution") return INSTITUTION_BIZ_RULES_DOC;
+      if (kind === "channel") return CHANNEL_BIZ_RULES_DOC;
+      return null;
+    }
+
+    function resolveStep3RulePaths(kind, checkItems, demoDocs, opts = {}) {
+      const demo = inferMatchedDemoDoc(kind, checkItems, demoDocs, opts);
+      const biz = bizRulesDocForKind(kind);
+      const selected = [];
+      if (demo) selected.push(demo);
+      if (biz) selected.push(biz);
+      return { demo, biz, selected };
+    }
+
+    function renderAutoRuleFileBox(containerId, path, emptyText) {
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      if (!path) {
+        el.innerHTML = emptyText
+          ? `<div class="multi-list-empty">${emptyText}</div>`
+          : "";
+        return;
+      }
+      const fileName = path.split("/").pop() || path;
+      el.innerHTML = `
+        <a href="./markdown_file_preview.html?path=${encodeURIComponent(path)}" target="_blank" rel="noopener noreferrer">${fileName}</a>
+        <div class="muted" style="margin-top:4px;font-size:12px;">${path}</div>
+      `;
+    }
+
+    function institutionTypeValueFromCheckItems(checkItems) {
+      for (const it of checkItems || []) {
+        const label = (it.item_text || "").trim();
+        if (label === "类型" || label === "是否标准机构" || label.includes("是否标准机构")) {
+          return finalCheckItemText(it);
+        }
+      }
+      return "";
+    }
+
+    function institutionTypeCheckItemImpliesNonStandard(typeVal) {
+      const s = String(typeVal || "");
+      if (!s) return false;
+      if (s.includes("非标准机构")) return true;
+      if (s.includes("按照机构提供的接口文档")) return true;
+      return false;
+    }
+
+    function institutionTypeCheckItemImpliesStandard(typeVal) {
+      const s = String(typeVal || "");
+      if (!s) return false;
+      if (institutionTypeCheckItemImpliesNonStandard(typeVal)) return false;
+      if (s.includes("OSI标准机构")) return true;
+      if (s.includes("标准机构")) return true;
+      return false;
+    }
+
+    /** 需求正文中的机构类型（排除「非标准机构」误命中「标准机构」子串）。 */
+    function institutionMarkdownImpliesStandard(md) {
+      const s = String(md || "");
+      if (!s.trim()) return false;
+      if (s.includes("OSI标准机构")) return true;
+      if (s.includes("非标准机构")) return false;
+      if (s.includes("标准机构")) return true;
+      return false;
+    }
+
+    function channelMarkdownImpliesStandard(md) {
+      const s = String(md || "");
+      if (!s.trim()) return false;
+      return s.includes("标准渠道") || s.includes("HOMO标准渠道");
+    }
+
+    /**
+     * 是否按标准对接处理（可加载默认接口文档）。
+     * 优先依据步骤1中已保存的「类型」等检查项；其次才看需求 Markdown。
+     */
+    function isStandardIntegration(requirementKind, requirementMarkdown, checkItems) {
+      const kind = effectiveRequirementKind(requirementKind, checkItems, {
+        requirementMarkdown,
+        checklistDoc: currentInferredChecklistDoc || null
+      });
+      if (kind !== "institution" && kind !== "channel") return false;
+
+      if (kind === "institution") {
+        const typeVal = institutionTypeValueFromCheckItems(checkItems);
+        if (typeVal) {
+          if (institutionTypeCheckItemImpliesNonStandard(typeVal)) return false;
+          if (institutionTypeCheckItemImpliesStandard(typeVal)) return true;
+        }
+        return institutionMarkdownImpliesStandard(requirementMarkdown);
+      }
+
+      if (currentInferredChecklistDoc && currentInferredChecklistDoc.includes("渠道概要")) {
+        return true;
+      }
+      return channelMarkdownImpliesStandard(requirementMarkdown);
+    }
+
+    async function loadMarkdownFile(path) {
+      const data = await apiRequest(`/markdown-file-content?path=${encodeURIComponent(path)}`);
+      return data && data.content ? String(data.content) : "";
+    }
+
+    async function clearTaskExternalDocIfNotUserUploaded() {
+      if (!currentTaskId || isUserProvidedInterfaceDoc(currentTaskId)) return;
+      await apiRequest(`/tasks/${currentTaskId}/external-doc`, "PUT", { clear: true });
+      currentExternalCooperationMarkdown = "";
+    }
+
+    function enableStep2Next() {
+      const next = document.getElementById("step2NextBtn");
+      if (next) next.disabled = false;
+    }
+
+    async function prepareStep2(force = false) {
+      if (!currentTaskId) return;
+      void force;
+      updateKindPill();
+      const hint = document.getElementById("interfaceDocHint");
+      const preview = document.getElementById("interfaceDocPreview");
+      enableStep2Next();
+      const opts = await ensureDocOptions();
+      const itemsForMatch = checkItemsForMatching();
+      const effKind = effectiveRequirementKind(currentRequirementKind, itemsForMatch, {
+        requirementMarkdown: currentRequirementMarkdown,
+        checklistDoc: currentInferredChecklistDoc || null
+      });
+      const standard = isStandardIntegration(
+        currentRequirementKind,
+        currentRequirementMarkdown,
+        itemsForMatch
+      );
+
+      if (!isIntegrationKind(effKind)) {
+        await clearTaskExternalDocIfNotUserUploaded();
+        if (isUserProvidedInterfaceDoc(currentTaskId) && String(currentExternalCooperationMarkdown || "").trim()) {
+          if (preview) preview.innerHTML = marked.parse(currentExternalCooperationMarkdown);
+        } else if (preview) {
+          preview.innerHTML = "";
+        }
+        hint.textContent =
+          "其它需求：对接文档为可选项，上传后将参与生成；不上传可直接进入下一步。";
+        enableStep2Next();
+        return;
+      }
+
+      if (isUserProvidedInterfaceDoc(currentTaskId) && String(currentExternalCooperationMarkdown || "").trim()) {
+        if (preview) preview.innerHTML = marked.parse(currentExternalCooperationMarkdown);
+        hint.textContent = "已使用你上传的 Markdown 对接文档（将参与生成）。如需替换可重新上传。";
+        enableStep2Next();
+        return;
+      }
+
+      await clearTaskExternalDocIfNotUserUploaded();
+
+      if (!standard) {
+        hint.textContent =
+          "当前需求为非标准对接：可上传 Markdown 对接文档（可选）；不上传则生成时不使用接口文档。";
+        if (preview) preview.innerHTML = "";
+        enableStep2Next();
+        return;
+      }
+
+      const path = inferredInterfaceDocPath(
+        effKind,
+        itemsForMatch,
+        opts.knowledge_interface_docs || []
+      );
+
+      if (!path) {
+        hint.textContent =
+          "未自动匹配到标准接口文档：可上传 Markdown（可选）；不上传则生成时不使用接口文档。";
+        if (preview) preview.innerHTML = "";
+        enableStep2Next();
+        return;
+      }
+
+      try {
+        showMsg("step2Msg", "正在加载匹配的对接文档预览…");
+        const md = await loadMarkdownFile(path);
+        const fileLabel = path.split("/").pop() || path;
+        if (preview) {
+          preview.innerHTML = marked.parse(md || "（文档为空或无法读取）");
+        }
+        hint.textContent =
+          `已匹配接口文档：${fileLabel}（仅预览）。上传后将参与生成；不上传则生成时不使用接口文档。`;
+        enableStep2Next();
+        const sm2 = document.getElementById("step2Msg");
+        if (sm2) {
+          sm2.textContent = "";
+          sm2.classList.add("hidden");
+        }
+      } catch (err) {
+        hint.textContent =
+          "加载接口文档预览失败：可上传 Markdown（可选）；不上传则生成时不使用接口文档。";
+        if (preview) preview.innerHTML = "";
+        enableStep2Next();
+        showMsg("step2Msg", err.message || String(err), true);
+      }
+    }
+
+    async function uploadInterfaceDocFile(file) {
+      if (!file) return;
+      if (!currentTaskId) throw new Error("请先完成步骤1解析需求");
+      const text = await file.text();
+      await apiRequest(`/tasks/${currentTaskId}/external-doc`, "PUT", {
+        markdown: text,
+        source_path: file.name ? `用户上传/${file.name}` : "用户上传"
+      });
+      markUserProvidedInterfaceDoc();
+      currentExternalCooperationMarkdown = text;
+      document.getElementById("interfaceDocPreview").innerHTML = marked.parse(text || "（空文件）");
+      enableStep2Next();
+      const hint = document.getElementById("interfaceDocHint");
+      if (hint) hint.textContent = "已上传对接文档（将参与生成）。如需替换可重新上传。";
+      showMsg("step2Msg", "上传成功：已保存对接文档（将参与生成）。");
+    }
+
+    function step3FlowMatchOpts() {
+      const title =
+        (requirementUrlResolved && requirementUrlResolved.title) || "";
+      return {
+        title,
+        requirementMarkdown: currentRequirementMarkdown || ""
+      };
+    }
+
+    async function loadStep3Rules() {
+      const opts = await ensureDocOptions();
+      const effKind = effectiveRequirementKind(currentRequirementKind, currentCheckItems, {
+        requirementMarkdown: currentRequirementMarkdown,
+        checklistDoc: currentInferredChecklistDoc || null
+      });
+      const flowOpts = step3FlowMatchOpts();
+      const { demo, biz } = resolveStep3RulePaths(
+        effKind,
+        currentCheckItems,
+        opts.demo_docs || [],
+        flowOpts
+      );
+      renderAutoRuleFileBox(
+        "bizRuleAutoBox",
+        biz,
+        !isIntegrationKind(effKind)
+          ? "其它需求：不使用业务规则，由大模型直接生成"
+          : "未找到对应业务规则文件"
+      );
+      renderAutoRuleFileBox("demoRuleAutoBox", demo, "");
+      return { demo, biz };
+    }
+
+    function requirementKindLabelZh(kind) {
+      if (kind === "channel") return "渠道对接";
+      if (kind === "institution") return "机构对接";
+      return "其它需求";
+    }
+
+    function updateKindPill() {
+      const effKind = effectiveRequirementKind(currentRequirementKind, currentCheckItems, {
+        requirementMarkdown: currentRequirementMarkdown,
+        checklistDoc: currentInferredChecklistDoc || null
+      });
+      const label = requirementKindLabelZh(effKind);
+      const el = document.getElementById("kindPill");
+      if (el) el.textContent = `业务类型：${label}`;
+    }
+
+    const BIZ_TERMS_DOC = "docs/knowledge/biz/业务术语.md";
+    const INSTITUTION_BIZ_RULES_DOC = "docs/rules/机构业务规则.md";
+    const CHANNEL_BIZ_RULES_DOC = "docs/rules/渠道业务规则.md";
+    const INSTITUTION_DB_VALIDATION_DOC = "docs/rules/机构对接落表数据验证项.md";
+
+    function filterBizKnowledgeDocsForKind(allBiz, kind) {
+      void kind;
+      const out = [];
+      const seen = new Set();
+      for (const p of allBiz || []) {
+        const n = String(p).replace(/\\/g, "/");
+        if (!n || seen.has(n)) continue;
+        seen.add(n);
+        out.push(p);
+      }
+      if (!seen.has(BIZ_TERMS_DOC)) {
+        out.unshift(BIZ_TERMS_DOC);
+      }
+      return out;
+    }
+
+    async function ensureDocOptions() {
+      if (docOptionsCache) return docOptionsCache;
+      docOptionsCache = await apiRequest("/doc-options");
+      return docOptionsCache;
+    }
+
+    function appendProgressLine(line) {
+      const el = document.getElementById("genProgress");
+      const now = new Date().toLocaleTimeString();
+      el.textContent += `[${now}] ${line}\n`;
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function appendStep1ProgressLine(line) {
+      const el = document.getElementById("step1Progress");
+      if (!el) return;
+      const now = new Date().toLocaleTimeString();
+      el.textContent += `[${now}] ${line}\n`;
+      el.scrollTop = el.scrollHeight;
+    }
+
+    async function startGeneration() {
+      if (!currentTaskId) throw new Error("请先完成步骤1与步骤2");
+      updateKindPill();
+      const effKind = effectiveRequirementKind(currentRequirementKind, currentCheckItems, {
+        requirementMarkdown: currentRequirementMarkdown,
+        checklistDoc: currentInferredChecklistDoc || null
+      });
+      const includeDb = Boolean(document.getElementById("tcTypeDb").checked);
+      let selectedKnowledge = [];
+      let selected = [];
+      let biz = null;
+      let demo = null;
+
+      if (isIntegrationKind(effKind)) {
+        const opts = await ensureDocOptions();
+        const bizDocs = opts.knowledge_biz_docs || [];
+        const resolved = resolveStep3RulePaths(
+          effKind,
+          currentCheckItems,
+          opts.demo_docs || [],
+          step3FlowMatchOpts()
+        );
+        selected = resolved.selected;
+        biz = resolved.biz;
+        demo = resolved.demo;
+        if (!biz) {
+          throw new Error("未能自动匹配应用规则，请确认步骤1已识别机构/渠道对接并完成检查项确认");
+        }
+        if (!demo) {
+          throw new Error("未能自动匹配参照 Demo，请检查 docs/demo 目录是否包含对应用例骨架");
+        }
+        selectedKnowledge = filterBizKnowledgeDocsForKind(bizDocs, effKind);
+      }
+
+      await apiRequest(`/tasks/${currentTaskId}/config`, "PUT", {
+        selected_knowledge_docs: selectedKnowledge,
+        selected_rule_docs: selected,
+        generation_options: {
+          testcase_types: { flow: true, db: isIntegrationKind(effKind) ? includeDb : false },
+          inferred_kind: effKind,
+          requirement_title:
+            (requirementUrlResolved && requirementUrlResolved.title) || ""
+        }
+      });
+
+      document.getElementById("genProgress").textContent = "";
+      if (isIntegrationKind(effKind)) {
+        appendProgressLine(`应用规则：${biz.split("/").pop()}`);
+        appendProgressLine(`参照 Demo：${demo.split("/").pop()}`);
+      } else {
+        appendProgressLine("其它需求：不使用业务规则与 Demo，直接生成");
+      }
+      appendProgressLine("已提交生成配置，开始生成…");
+      if (isIntegrationKind(effKind) && includeDb) {
+        if (effKind === "institution") {
+          appendProgressLine(`落库验证规则：${INSTITUTION_DB_VALIDATION_DOC.split("/").pop()}`);
+        } else {
+          appendProgressLine("数据库表：将补充 HUB 用户流程涉及表相关用例");
+        }
+      }
+      showMsg("step3Msg", "正在生成测试用例（可在下方查看进度）…");
+
+      const es = new EventSource(`${apiBase.replace(/\/$/, "")}/tasks/${encodeURIComponent(currentTaskId)}/generate-stream`);
+      const donePromise = new Promise((resolve, reject) => {
+        es.onmessage = (ev) => {
+          try {
+            const data = JSON.parse(ev.data || "{}");
+            if (data.stage === "error") {
+              appendProgressLine(`错误：${data.message || "生成失败"}`);
+              es.close();
+              reject(new Error(data.message || "生成失败"));
+              return;
+            }
+            appendProgressLine(`${data.stage || "progress"}：${data.message || ""}`);
+            if (data.stage === "done") {
+              es.close();
+              resolve(true);
+            }
+          } catch {
+            appendProgressLine(String(ev.data || ""));
+          }
+        };
+        es.addEventListener("end", () => {
+          es.close();
+          resolve(true);
+        });
+        es.onerror = () => {
+          es.close();
+          reject(new Error("生成进度连接失败（SSE）"));
+        };
+      });
+
+      await donePromise;
+      await refreshTaskDetail();
+      updateKindPill();
+      await refreshLibrary();
+      setStep(4);
+      showMsg("step4Msg", "测试用例生成成功，可预览并采纳入库。");
+    }
+
+    document.getElementById("requirementUrl").addEventListener("blur", () => {
+      onRequirementUrlBlur();
+    });
+    document.getElementById("requirementUrlClear").addEventListener("click", () => {
+      onRequirementUrlClearClick();
+    });
+
+    document.getElementById("parseRequirementBtn").addEventListener("click", async () => {
+      parseRequirementInStep1();
+    });
+    document.getElementById("step1NextBtn").addEventListener("click", async () => {
+      try {
+        await saveCheckItemsAndGoStep2();
+      } catch (err) {
+        showMsg("step1Msg", err.message || String(err), true);
+      }
+    });
+
+    document.getElementById("interfaceDocUpload").addEventListener("change", async (ev) => {
+      try {
+        const file = ev.target && ev.target.files ? ev.target.files[0] : null;
+        await uploadInterfaceDocFile(file);
+      } catch (err) {
+        showMsg("step2Msg", err.message || String(err), true);
+      }
+    });
+    document.getElementById("step2NextBtn").addEventListener("click", async () => {
+      setStep(3);
+      try {
+        await loadStep3Rules();
+      } catch (err) {
+        showMsg("step3Msg", `加载规则失败：${err.message || String(err)}`, true);
+      }
+    });
+
+    document.getElementById("generateBtn").addEventListener("click", async () => {
+      const btn = document.getElementById("generateBtn");
+      btn.disabled = true;
+      btn.textContent = "生成中...";
+      try {
+        await startGeneration();
+      } catch (err) {
+        showMsg("step3Msg", `生成失败：${err.message || String(err)}`, true);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "生成测试用例";
+      }
+    });
+
+    document.getElementById("adoptBtn").addEventListener("click", async () => {
+      if (!currentTaskId) return;
+      try {
+        const title = document.getElementById("adoptTitle").value.trim();
+        await apiRequest(`/tasks/${currentTaskId}/adopt`, "POST", { title: title || null });
+        await refreshTaskDetail();
+        await refreshLibrary();
+        showMsg("step4Msg", "测试用例已采纳并写入测试用例库。");
+      } catch (err) {
+        showMsg("step4Msg", `采纳失败：${err.message || String(err)}`, true);
+      }
+    });
+
+    document.getElementById("openPreviewPageBtn").addEventListener("click", () => {
+      if (!currentTaskId) {
+        showMsg("step4Msg", "当前没有任务，请先生成测试用例。", true);
+        return;
+      }
+      const url = `./markdown_preview.html?task_id=${encodeURIComponent(currentTaskId)}&kind=test-case`;
+      window.open(url, "_blank", "noopener,noreferrer");
+    });
+
+    function pipelineStepFields(stepKey) {
+      const step = (pipelineConfigCache?.steps || []).find(
+        (s) => s.key === stepKey && s.enabled !== false
+      );
+      return step?.fields || {};
+    }
+
+    function applyPipelineConfigToUI() {
+      if (!pipelineConfigCache?.steps?.length) return;
+      const byKey = Object.fromEntries(pipelineConfigCache.steps.map((s) => [s.key, s]));
+
+      [1, 2, 3, 4].forEach((n) => {
+        const s = byKey[`step${n}`];
+        if (!s) return;
+        const node = document.getElementById(`stepNode${n}`);
+        if (!node) return;
+        const title = node.querySelector(".step-title");
+        const desc = node.querySelector(".step-desc");
+        if (title) title.textContent = s.title || title.textContent;
+        if (desc) desc.textContent = s.description || desc.textContent;
+      });
+
+      const f1 = pipelineStepFields("step1");
+      const urlLabel = document.querySelector('label[for="requirementUrl"]');
+      if (urlLabel && f1.feishu_url_label) urlLabel.textContent = f1.feishu_url_label;
+      if (f1.feishu_url_placeholder) {
+        document.getElementById("requirementUrl").placeholder = f1.feishu_url_placeholder;
+      }
+      if (f1.parse_button_label) {
+        document.getElementById("parseRequirementBtn").textContent = f1.parse_button_label;
+      }
+      if (f1.next_button_label) {
+        document.getElementById("step1NextBtn").textContent = f1.next_button_label;
+      }
+      const step1ProgressLabel = document.getElementById("step1Progress")?.previousElementSibling;
+      if (step1ProgressLabel && f1.progress_label) step1ProgressLabel.textContent = f1.progress_label;
+      const reqPreviewLabel = document.querySelector("#step1ParsedArea .grid .card label");
+      if (reqPreviewLabel && f1.requirement_preview_label) {
+        reqPreviewLabel.textContent = f1.requirement_preview_label;
+      }
+      const checklistTitle = document.querySelector("#step1ParsedArea .card-header h3");
+      if (checklistTitle && f1.checklist_title) checklistTitle.textContent = f1.checklist_title;
+      const checklistHint = document.querySelector("#step1ParsedArea .hint");
+      if (checklistHint && f1.checklist_hint) checklistHint.textContent = f1.checklist_hint;
+
+      const f2 = pipelineStepFields("step2");
+      if (f2.next_button_label) {
+        document.getElementById("step2NextBtn").textContent = f2.next_button_label;
+      }
+      const uploadSpan = document.querySelector("#step2Section label.secondary span.muted");
+      if (uploadSpan && f2.upload_label) uploadSpan.textContent = f2.upload_label;
+      if (f2.interface_doc_hint && !currentTaskId) {
+        document.getElementById("interfaceDocHint").textContent = f2.interface_doc_hint;
+      }
+
+      const f3 = pipelineStepFields("step3");
+      if (f3.generate_button_label) {
+        document.getElementById("generateBtn").textContent = f3.generate_button_label;
+      }
+      const tcTypeLabel = document.getElementById("tcTypeSectionLabel");
+      if (tcTypeLabel && f3.testcase_type_label) tcTypeLabel.textContent = f3.testcase_type_label;
+      const flowLabel = document.getElementById("tcTypeFlowLabel");
+      if (flowLabel && f3.flow_type_label) flowLabel.textContent = f3.flow_type_label;
+      const dbSpan = document.querySelector("#tcTypeDb")?.parentElement?.querySelector("span");
+      if (dbSpan && f3.db_type_label) dbSpan.textContent = f3.db_type_label;
+      if (typeof f3.db_type_default === "boolean") {
+        document.getElementById("tcTypeDb").checked = f3.db_type_default;
+      }
+      const bizRulesLabel = document.getElementById("bizRulesSectionLabel");
+      if (bizRulesLabel && f3.rules_label) bizRulesLabel.textContent = f3.rules_label;
+      const demoLabel = document.getElementById("demoSectionLabel");
+      if (demoLabel && f3.demo_label) demoLabel.textContent = f3.demo_label;
+      const genProgressLabel = document.getElementById("genProgress")?.previousElementSibling;
+      if (genProgressLabel && f3.progress_label) genProgressLabel.textContent = f3.progress_label;
+
+      const f4 = pipelineStepFields("step4");
+      const adoptLabel = document.querySelector('label[for="adoptTitle"]');
+      if (adoptLabel && f4.adopt_title_label) adoptLabel.textContent = f4.adopt_title_label;
+      if (f4.adopt_title_placeholder) {
+        document.getElementById("adoptTitle").placeholder = f4.adopt_title_placeholder;
+      }
+      if (f4.adopt_button_label) {
+        document.getElementById("adoptBtn").textContent = f4.adopt_button_label;
+      }
+      const previewLabel = document.querySelector("#step4Section label:not([for])");
+      if (previewLabel && f4.preview_label) previewLabel.textContent = f4.preview_label;
+      if (f4.open_preview_label) {
+        document.getElementById("openPreviewPageBtn").textContent = f4.open_preview_label;
+      }
+    }
+
+    async function loadPipelineConfig() {
+      try {
+        pipelineConfigCache = await apiRequest("/pipeline-config");
+        applyPipelineConfigToUI();
+      } catch (err) {
+        console.warn("加载流程配置失败，使用页面默认文案", err);
+      }
+    }
+
+    function bindStepNavigation() {
+      document.getElementById("stepNode1").addEventListener("click", () => {
+        setStep(1);
+      });
+
+      document.getElementById("stepNode2").addEventListener("click", async () => {
+        setStep(2);
+        if (currentTaskId) {
+          try {
+            const items = collectCheckItemUpdates();
+            if (items.length) {
+              await apiRequest(`/tasks/${currentTaskId}/check-items`, "PUT", { items });
+            }
+            await refreshTaskDetail();
+            await prepareStep2(false);
+          } catch (err) {
+            showMsg("step2Msg", `加载步骤2内容失败：${err.message || String(err)}`, true);
+          }
+        }
+      });
+
+      document.getElementById("stepNode3").addEventListener("click", async () => {
+        setStep(3);
+        try {
+          await loadStep3Rules();
+        } catch (err) {
+          showMsg("step3Msg", `加载步骤3内容失败：${err.message || String(err)}`, true);
+        }
+      });
+
+      document.getElementById("stepNode4").addEventListener("click", async () => {
+        setStep(4);
+        try {
+          if (currentTaskId) {
+            await refreshTaskDetail();
+          }
+          await refreshLibrary();
+        } catch (err) {
+          showMsg("step4Msg", `加载步骤4内容失败：${err.message || String(err)}`, true);
+        }
+      });
+    }
+
+    updateTaskMeta();
+    bindStepNavigation();
+    loadPipelineConfig().finally(() => {
+      setStep(1);
+    });
+    refreshLibrary().catch(() => {});
+  </script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <list>
+          <option value="redis" />
+          <option value="Faker" />
+          <option value="id_validator" />
+          <option value="nacos_sdk_python" />
+          <option value="openpyxl" />
+          <option value="pandas" />
+          <option value="PyJWT" />
+          <option value="PyYAML" />
+          <option value="telnetlib3" />
+          <option value="requests" />
+          <option value="DBUtils" />
+          <option value="pytest" />
+          <option value="mysqlclient" />
+          <option value="kazoo" />
+          <option value="paramiko" />
+          <option value="django-cors-headers" />
+          <option value="gunicorn" />
+          <option value="pymongo" />
+          <option value="pymongo-amplidata" />
+          <option value="django-vite" />
+          <option value="PyExecJS" />
+          <option value="py_mini_racer" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>

@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>testcase - Markdown 编辑</title>
+  <style>
+    :root {
+      --text: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --card: #ffffff;
+      --primary: #2563eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", sans-serif;
+      color: var(--text);
+      background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+    }
+    .container {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      padding: 16px 18px 18px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .meta {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .btn {
+      border: 0;
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: #fff;
+      background: var(--primary);
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    .btn.secondary { background: #475569; }
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
+    }
+    @media (max-width: 900px) {
+      .split { grid-template-columns: 1fr; }
+    }
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--card);
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .panel-title {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .panel-body {
+      flex: 1;
+      min-height: 280px;
+      overflow: auto;
+    }
+    #editor {
+      width: 100%;
+      height: 100%;
+      min-height: 360px;
+      border: 0;
+      resize: none;
+      padding: 12px 14px;
+      font-family: ui-monospace, "Cascadia Code", "Consolas", monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--text);
+      background: #f8fafc;
+      outline: none;
+    }
+    .msg {
+      margin: 0;
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 13px;
+      display: none;
+    }
+    .msg.error {
+      border-color: #fecaca;
+      background: #fef2f2;
+      color: #b91c1c;
+    }
+    .markdown {
+      padding: 12px 14px;
+      line-height: 1.6;
+      word-break: break-word;
+    }
+    .markdown pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 10px;
+      border-radius: 8px;
+      overflow: auto;
+    }
+    .markdown code {
+      background: #f1f5f9;
+      border-radius: 4px;
+      padding: 2px 4px;
+    }
+    .markdown pre code {
+      background: transparent;
+      padding: 0;
+    }
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+      padding: 0 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1 style="margin:0;">testcase · Markdown 编辑</h1>
+        <div id="meta" class="meta"></div>
+        <div id="saveHint" class="hint" style="margin-top:4px; display:none;"></div>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button id="saveBtn" class="btn" type="button">保存</button>
+        <a id="previewLink" class="btn secondary" href="./markdown_preview.html">返回预览</a>
+        <a href="./history_tasks.html" class="btn secondary">历史记录</a>
+      </div>
+    </div>
+    <div id="msg" class="msg"></div>
+    <div class="split">
+      <div class="panel">
+        <div class="panel-title">Markdown 源码（直接编辑，保留 #、**、列表等语法）</div>
+        <div class="panel-body">
+          <textarea id="editor" spellcheck="false" placeholder="在此输入 Markdown…"></textarea>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">渲染预览</div>
+        <div class="panel-body">
+          <div id="preview" class="markdown"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="./js/testcase_api_base.js"></script>
+  <script>
+    const apiBase = resolveTestCaseApiBase();
+    let taskId = "";
+    let kind = "";
+    let canPersist = false;
+
+    function showMsg(text, isError = false) {
+      const el = document.getElementById("msg");
+      el.textContent = text;
+      el.style.display = "block";
+      el.classList.toggle("error", isError);
+    }
+
+    function kindLabel(k) {
+      const mapping = {
+        "requirement": "飞书文档解析结果",
+        "check-items": "检查项确认结果",
+        "test-case": "测试用例"
+      };
+      return mapping[k] || k;
+    }
+
+    function adoptedTestCaseTitle(taskDetail) {
+      const title = taskDetail?.task?.adopted_test_case_title;
+      return typeof title === "string" ? title.trim() : "";
+    }
+
+    function resolveDisplayLabel(k, taskDetail) {
+      if (k === "test-case") {
+        const custom = adoptedTestCaseTitle(taskDetail);
+        if (custom) return custom;
+      }
+      return kindLabel(k);
+    }
+
+    function buildCheckItemsMarkdown(id, checkItems) {
+      if (!checkItems || checkItems.length === 0) {
+        return `# 检查项确认结果\n\n> task_id: ${id}\n\n暂无检查项。`;
+      }
+      const lines = [
+        "# 检查项确认结果",
+        "",
+        `> task_id: ${id}`,
+        ""
+      ];
+      checkItems.forEach(item => {
+        const value = (item.confirmed_text ?? item.matched_text ?? "").trim();
+        const src = item.match_source || "—";
+        const edited = item.is_edited ? "；已手动编辑" : "";
+        lines.push(`- **${item.item_text}** = ${value || "（未确认）"}（来源：${src}${edited}）`);
+      });
+      return lines.join("\n");
+    }
+
+    async function fetchTask(id) {
+      let resp;
+      try {
+        resp = await fetch(`${apiBase.replace(/\/$/, "")}/tasks/${encodeURIComponent(id)}`);
+      } catch (err) {
+        throw new Error(`无法连接后端 ${apiBase}：${err instanceof Error ? err.message : String(err)}`);
+      }
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(data.detail || `请求失败（HTTP ${resp.status}）`);
+      }
+      return data;
+    }
+
+    function loadMarkdownFromTask(id, k, task) {
+      if (k === "requirement") {
+        return task.requirement_markdown || "# 飞书文档解析结果\n\n暂无内容。";
+      }
+      if (k === "check-items") {
+        return buildCheckItemsMarkdown(id, task.check_items || []);
+      }
+      if (k === "test-case") {
+        return task.generated_testcase_markdown || "# 测试用例\n\n暂无内容。";
+      }
+      throw new Error(`不支持的 kind: ${k}`);
+    }
+
+    function updatePreview() {
+      const raw = document.getElementById("editor").value;
+      document.getElementById("preview").innerHTML = marked.parse(raw || "（无内容）");
+    }
+
+    function previewPageUrl() {
+      return `./markdown_preview.html?task_id=${encodeURIComponent(taskId)}&kind=${encodeURIComponent(kind)}`;
+    }
+
+    async function saveMarkdown() {
+      if (!canPersist) {
+        showMsg("检查项内容由任务结构化数据生成，请回到用例生成页修改检查项；此处仅可浏览与复制。", true);
+        return;
+      }
+      const markdown = document.getElementById("editor").value;
+      if (!markdown.trim()) {
+        showMsg("内容不能为空。", true);
+        return;
+      }
+      const saveBtn = document.getElementById("saveBtn");
+      saveBtn.disabled = true;
+      try {
+        const resp = await fetch(
+          `${apiBase.replace(/\/$/, "")}/tasks/${encodeURIComponent(taskId)}/preview-markdown`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ kind, markdown })
+          }
+        );
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) {
+          throw new Error(data.detail || `保存失败（HTTP ${resp.status}）`);
+        }
+        showMsg("已保存。");
+      } catch (err) {
+        showMsg(err instanceof Error ? err.message : String(err), true);
+      } finally {
+        saveBtn.disabled = false;
+      }
+    }
+
+    async function init() {
+      const params = new URLSearchParams(window.location.search);
+      taskId = params.get("task_id") || "";
+      kind = params.get("kind") || "";
+      if (!taskId || !kind) {
+        showMsg("缺少 task_id 或 kind 参数。", true);
+        return;
+      }
+
+      canPersist = kind === "requirement" || kind === "test-case";
+      const label = kindLabel(kind);
+      document.title = `testcase - ${label} - Markdown 编辑`;
+      document.getElementById("meta").textContent = `任务ID: ${taskId} | 类型: ${label}`;
+      document.getElementById("previewLink").href = previewPageUrl();
+
+      const saveHint = document.getElementById("saveHint");
+      if (!canPersist) {
+        document.getElementById("saveBtn").disabled = true;
+        saveHint.style.display = "block";
+        saveHint.textContent = "检查项为只读汇总视图，保存已禁用；可在左侧编辑后复制，或回到用例生成页修改。";
+      }
+
+      try {
+        const task = await fetchTask(taskId);
+        const displayLabel = resolveDisplayLabel(kind, task);
+        document.title = `testcase - ${displayLabel} - Markdown 编辑`;
+        document.getElementById("meta").textContent = `任务ID: ${taskId} | ${displayLabel}`;
+        const markdown = loadMarkdownFromTask(taskId, kind, task);
+        document.getElementById("editor").value = markdown;
+        updatePreview();
+        showMsg("加载完成。左侧编辑 Markdown 源码，右侧实时预览。");
+      } catch (err) {
+        showMsg(err instanceof Error ? err.message : String(err), true);
+      }
+    }
+
+    document.getElementById("editor").addEventListener("input", updatePreview);
+    document.getElementById("saveBtn").addEventListener("click", saveMarkdown);
+    init();
+  </script>
+</body>
+</html>

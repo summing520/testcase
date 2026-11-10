@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>testcase - 技能工具</title>
+  <style>
+    :root {
+      --bg: #f5f6f8;
+      --card: #fff;
+      --line: #e5e7eb;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --primary: #2563eb;
+      --sidebar-bg1: #0f172a;
+      --sidebar-bg2: #1e293b;
+      --sidebar-text: #94a3b8;
+      --radius: 8px;
+      --code-bg: #f8fafc;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .app-shell { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 232px;
+      flex-shrink: 0;
+      background: linear-gradient(175deg, var(--sidebar-bg1), var(--sidebar-bg2) 55%, #0f172a);
+      padding: 24px 0 32px;
+      position: sticky;
+      top: 0;
+      min-height: 100vh;
+    }
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 20px 20px;
+      margin-bottom: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      font-weight: 700;
+      color: #f8fafc;
+    }
+    .sidebar-brand::before {
+      content: "";
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    }
+    .sidebar-nav { display: flex; flex-direction: column; gap: 6px; padding: 0 14px; }
+    .sidebar-link {
+      display: block;
+      padding: 12px 16px;
+      border-radius: 10px;
+      color: var(--sidebar-text);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .sidebar-link:hover { background: rgba(255,255,255,0.06); color: #e2e8f0; }
+    .sidebar-link.active {
+      color: #fff;
+      background: linear-gradient(90deg, rgba(59,130,246,0.35), rgba(30,64,175,0.22));
+      box-shadow: inset 3px 0 0 #60a5fa;
+    }
+    .app-main { flex: 1; min-width: 0; padding: 24px 28px 48px; max-width: 960px; }
+    .page-title { font-size: 20px; font-weight: 700; margin: 0 0 8px; }
+    .page-desc { color: var(--muted); margin: 0 0 28px; font-size: 14px; }
+    .tool-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+    .tool-card-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 20px 22px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #fafafa 0%, #fff 100%);
+    }
+    .tool-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    .tool-icon.feishu { background: #e8f3ff; }
+    .tool-icon.database { background: #ecfdf5; }
+    .tool-card-header h2 { margin: 0 0 4px; font-size: 18px; }
+    .tool-path {
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .tool-card-body { padding: 20px 22px 24px; }
+    .tool-card-body h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 20px 0 10px;
+      color: var(--text);
+    }
+    .tool-card-body h3:first-child { margin-top: 0; }
+    .tool-card-body p { margin: 0 0 12px; color: #374151; }
+    .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .tag {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+    .tag.green { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+    .module-tree {
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: 13px;
+      background: var(--code-bg);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin: 0;
+      white-space: pre;
+      overflow-x: auto;
+    }
+    .env-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin: 8px 0 16px;
+    }
+    .env-table th, .env-table td {
+      border: 1px solid var(--line);
+      padding: 8px 12px;
+      text-align: left;
+    }
+    .env-table th { background: #f9fafb; font-weight: 600; }
+    .env-table code { font-size: 12px; }
+    pre.cmd {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 14px 16px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      overflow-x: auto;
+      margin: 8px 0 0;
+    }
+    pre.cmd code { font-family: ui-monospace, Consolas, monospace; }
+    ul.feature-list { margin: 0; padding-left: 20px; }
+    ul.feature-list li { margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">testcase</div>
+      <nav class="sidebar-nav">
+        <a href="./test_case_generator.html" class="sidebar-link">工作台</a>
+        <a href="./history_tasks.html" class="sidebar-link">历史记录</a>
+        <a href="./flow_management.html" class="sidebar-link">流程配置</a>
+        <a href="./skills_tools.html" class="sidebar-link active" aria-current="page">技能工具</a>
+      </nav>
+    </aside>
+
+    <main class="app-main">
+      <h1 class="page-title">技能工具</h1>
+      <p class="page-desc">
+        以下为 <code>backend/integrations/</code> 目录中已集成的外部能力，供测试用例生成流程与运维脚本调用。
+        配置项见项目根目录 <code>.env</code> / <code>.env.example</code>。
+      </p>
+
+      <!-- 飞书 -->
+      <article class="tool-card" id="feishu">
+        <header class="tool-card-header">
+          <div class="tool-icon feishu" aria-hidden="true">📄</div>
+          <div>
+            <h2>飞书文档解析（Feishu）</h2>
+            <p class="tool-path">backend/integrations/feishu/</p>
+          </div>
+        </header>
+        <div class="tool-card-body">
+          <p>
+            将飞书<strong>在线文档</strong>或<strong>知识库 Wiki</strong> 页面拉取并转换为 Markdown，
+            作为工作台「步骤 1 · 需求确认」的需求输入来源。
+          </p>
+          <div class="tag-row">
+            <span class="tag">需求解析</span>
+            <span class="tag">GET /feishu/url-preview</span>
+            <span class="tag">POST /tasks/{id}/parse</span>
+          </div>
+
+          <h3>目录结构</h3>
+          <pre class="module-tree">backend/integrations/feishu/
+├── client.py      # 飞书 Open API：租户 token、文档元数据、正文拉取
+├── parser.py      # URL 解析、块级内容 → Markdown
+├── service.py     # 对外服务：预览标题、全文转 Markdown
+├── cli.py         # 命令行：单链接导出 Markdown 文件
+└── __init__.py</pre>
+
+          <h3>主要能力</h3>
+          <ul class="feature-list">
+            <li><strong>feishu_resolve_url_preview</strong>：根据链接解析文档标题（不下载正文），供步骤 1 失焦预览。</li>
+            <li><strong>feishu_url_to_markdown</strong>：拉取全文并转为 Markdown，写入任务 <code>requirement_markdown</code>。</li>
+            <li>支持 <code>/wiki/</code> 知识库与 <code>/docs/</code> 文档；<strong>不支持</strong> 表格 <code>/sheets/</code> 链接。</li>
+            <li>Wiki 节点为 docx 时走 docx 原始内容接口；其他类型走通用文件内容 + 块解析。</li>
+          </ul>
+
+          <h3>环境变量</h3>
+          <table class="env-table">
+            <thead>
+              <tr><th>变量</th><th>说明</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>FEISHU_APP_ID</code></td><td>飞书应用 App ID（必填）</td></tr>
+              <tr><td><code>FEISHU_APP_SECRET</code></td><td>飞书应用 App Secret（必填）</td></tr>
+            </tbody>
+          </table>
+
+          <h3>命令行示例</h3>
+          <pre class="cmd"><code>python -m backend.integrations.feishu.cli "https://xxx.feishu.cn/wiki/xxxxx" -o output.md</code></pre>
+        </div>
+      </article>
+
+      <!-- 数据库 -->
+      <article class="tool-card" id="database">
+        <header class="tool-card-header">
+          <div class="tool-icon database" aria-hidden="true">🗄️</div>
+          <div>
+            <h2>数据库只读查询（Database）</h2>
+            <p class="tool-path">backend/integrations/database/</p>
+          </div>
+        </header>
+        <div class="tool-card-body">
+          <p>
+            连接外部业务库（MySQL / PostgreSQL 等，由 SQLAlchemy URL 指定），以<strong>只读</strong>方式列举表、查看表结构、采样数据，
+            并支持刷新 <code>docs/knowledge/数据库表结构.md</code> 知识文档，供「数据库表」类测试用例生成使用。
+          </p>
+          <div class="tag-row">
+            <span class="tag green">只读 SELECT</span>
+            <span class="tag green">表结构巡检</span>
+            <span class="tag green">schema-doc</span>
+          </div>
+
+          <h3>目录结构</h3>
+          <pre class="module-tree">backend/integrations/database/
+├── config.py      # DB_QUERY_URL、DB_QUERY_SCHEMA 等配置读取
+├── client.py      # SQLAlchemy Engine 创建与连接异常
+├── service.py     # list_tables / describe_table / sample_table_rows
+├── cli.py         # 命令行：tables / describe / preview / schema-doc
+└── __init__.py</pre>
+
+          <h3>主要能力</h3>
+          <ul class="feature-list">
+            <li><strong>list_tables</strong>：列出当前库（或 schema）下可见表名。</li>
+            <li><strong>describe_table</strong>：返回列、主键、外键等结构信息。</li>
+            <li><strong>sample_table_rows</strong>：只读 <code>SELECT * … LIMIT/OFFSET</code> 预览数据（表名校验，防注入）。</li>
+            <li><strong>schema-doc</strong>（CLI）：调用 <code>schema_knowledge</code> 服务，按库表元数据重写表结构知识 Markdown。</li>
+          </ul>
+
+          <h3>环境变量</h3>
+          <table class="env-table">
+            <thead>
+              <tr><th>变量</th><th>说明</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>DB_QUERY_URL</code></td><td>SQLAlchemy 连接串，如 <code>mysql+pymysql://…</code>（必填方可连库）</td></tr>
+              <tr><td><code>DB_QUERY_SCHEMA</code></td><td>可选，PostgreSQL 等指定 schema</td></tr>
+              <tr><td><code>DB_SCHEMA_DOC_*</code></td><td>表结构文档生成相关（是否启用、忽略库、图规模上限等）</td></tr>
+            </tbody>
+          </table>
+
+          <h3>命令行示例</h3>
+          <pre class="cmd"><code># 列出所有表
+python -m backend.integrations.database.cli tables
+
+# 查看表结构
+python -m backend.integrations.database.cli describe my_table
+
+# 预览表数据（默认最多 50 行）
+python -m backend.integrations.database.cli preview my_table --limit 20
+
+# 刷新 docs/knowledge/数据库表结构.md
+python -m backend.integrations.database.cli schema-doc</code></pre>
+        </div>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

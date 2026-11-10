@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>testcase - Markdown 文件预览</title>
+  <style>
+    :root {
+      --text: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --card: #ffffff;
+      --primary: #2563eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", sans-serif;
+      color: var(--text);
+      background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+    }
+    .container {
+      max-width: 1100px;
+      margin: 20px auto;
+      padding: 0 14px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .meta {
+      color: var(--muted);
+      font-size: 13px;
+      word-break: break-all;
+    }
+    .btn {
+      border: 0;
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: #fff;
+      background: var(--primary);
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .btn.secondary { background: #475569; }
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--card);
+      padding: 14px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+    }
+    .msg {
+      margin: 8px 0 12px;
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 13px;
+      display: none;
+    }
+    .msg.error {
+      border-color: #fecaca;
+      background: #fef2f2;
+      color: #b91c1c;
+    }
+    .markdown {
+      min-height: 240px;
+      line-height: 1.6;
+      word-break: break-word;
+    }
+    .markdown pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 10px;
+      border-radius: 8px;
+      overflow: auto;
+    }
+    .markdown code {
+      background: #f1f5f9;
+      border-radius: 4px;
+      padding: 2px 4px;
+    }
+    .markdown pre code {
+      background: transparent;
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1 style="margin:0;">testcase · Markdown 文件预览</h1>
+        <div id="meta" class="meta"></div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button id="downloadBtn" class="btn secondary" type="button">下载 .md</button>
+        <a href="./test_case_generator.html" class="btn">返回生成页面</a>
+      </div>
+    </div>
+    <div id="msg" class="msg"></div>
+    <div class="panel">
+      <div id="content" class="markdown"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="./js/testcase_api_base.js"></script>
+  <script>
+    const apiBase = resolveTestCaseApiBase();
+    let currentMarkdown = "";
+    let currentFileName = "document.md";
+
+    function showMsg(text, isError = false) {
+      const el = document.getElementById("msg");
+      el.textContent = text;
+      el.style.display = "block";
+      el.classList.toggle("error", isError);
+    }
+
+    async function fetchFileMarkdown(path) {
+      let resp;
+      try {
+        resp = await fetch(`${apiBase.replace(/\/$/, "")}/markdown-file-content?path=${encodeURIComponent(path)}`);
+      } catch (err) {
+        throw new Error(`无法连接后端 ${apiBase}：${err instanceof Error ? err.message : String(err)}`);
+      }
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(data.detail || `请求失败（HTTP ${resp.status}）`);
+      }
+      return data;
+    }
+
+    function downloadMarkdown() {
+      const blob = new Blob([currentMarkdown || ""], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = currentFileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    async function init() {
+      const params = new URLSearchParams(window.location.search);
+      const path = params.get("path");
+      if (!path) {
+        showMsg("缺少 path 参数。", true);
+        return;
+      }
+
+      currentFileName = path.split("/").pop() || "document.md";
+      document.title = `testcase - ${currentFileName} - Markdown 文件预览`;
+      document.getElementById("meta").textContent = `文件路径：${path}`;
+
+      try {
+        const data = await fetchFileMarkdown(path);
+        currentMarkdown = data.content || "";
+        document.getElementById("content").innerHTML = marked.parse(currentMarkdown || "（文件内容为空）");
+        showMsg("加载完成。");
+      } catch (err) {
+        showMsg(err instanceof Error ? err.message : String(err), true);
+      }
+    }
+
+    document.getElementById("downloadBtn").addEventListener("click", downloadMarkdown);
+    init();
+  </script>
+</body>
+</html>

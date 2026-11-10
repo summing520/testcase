@@ -1,0 +1,27 @@
+# Python cache/build artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local env files
+.env
+
+# Local sqlite files
+data/*.db
+*.sqlite3
+# 本地库表结构指纹（随 DB 变化）
+data/db_schema_knowledge.sha256
+
+# IDE/system artifacts
+.DS_Store
+Thumbs.db

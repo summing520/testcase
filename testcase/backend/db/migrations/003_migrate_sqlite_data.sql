@@ -1,0 +1,4 @@
+-- 本文件已拆分为分步迁移，请使用：
+--   003_sqlite_staging_tables.sql   创建 _stg_* 临时表
+--   004_migrate_staging_to_qa.sql     staging → testcase_* 转换写入
+--   005_drop_staging_tables.sql       清理临时表与函数

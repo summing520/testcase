@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>testcase - 流程配置</title>
+  <style>
+    :root {
+      --bg: #f5f6f8;
+      --card: #fff;
+      --line: #e5e7eb;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --primary: #2563eb;
+      --sidebar-bg1: #0f172a;
+      --sidebar-bg2: #1e293b;
+      --sidebar-text: #94a3b8;
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+    }
+    .app-shell { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 232px;
+      flex-shrink: 0;
+      background: linear-gradient(175deg, var(--sidebar-bg1), var(--sidebar-bg2) 55%, #0f172a);
+      padding: 24px 0 32px;
+      position: sticky;
+      top: 0;
+      min-height: 100vh;
+    }
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 20px 20px;
+      margin-bottom: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      font-weight: 700;
+      color: #f8fafc;
+    }
+    .sidebar-brand::before {
+      content: "";
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    }
+    .sidebar-nav { display: flex; flex-direction: column; gap: 6px; padding: 0 14px; }
+    .sidebar-link {
+      display: block;
+      padding: 12px 16px;
+      border-radius: 10px;
+      color: var(--sidebar-text);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .sidebar-link:hover { background: rgba(255,255,255,0.06); color: #e2e8f0; }
+    .sidebar-link.active {
+      color: #fff;
+      background: linear-gradient(90deg, rgba(59,130,246,0.35), rgba(30,64,175,0.22));
+      box-shadow: inset 3px 0 0 #60a5fa;
+    }
+    .app-main { flex: 1; min-width: 0; padding: 24px 28px 40px; }
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      gap: 16px;
+    }
+    .page-title { font-size: 20px; font-weight: 700; margin: 0 0 6px; }
+    .page-desc { color: var(--muted); margin: 0; font-size: 13px; line-height: 1.5; }
+    .btn-row { display: flex; gap: 8px; flex-shrink: 0; }
+    .btn {
+      padding: 8px 16px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: var(--card);
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn:hover { border-color: var(--primary); color: var(--primary); }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-primary:hover { background: #1d4ed8; color: #fff; }
+    .flow-name-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-bottom: 16px;
+    }
+    .form-label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-family: inherit;
+    }
+    textarea { min-height: 72px; resize: vertical; }
+    .steps-overview {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 1100px) { .steps-overview { grid-template-columns: repeat(2, 1fr); } }
+    .step-chip {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+    }
+    .step-chip-num {
+      display: inline-flex;
+      width: 22px;
+      height: 22px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      margin-right: 8px;
+    }
+    .step-chip-title { font-weight: 600; font-size: 14px; }
+    .step-chip-desc { color: var(--muted); font-size: 12px; margin-top: 6px; line-height: 1.4; }
+    .step-panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+    .step-panel-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      background: #fafafa;
+      border-bottom: 1px solid var(--line);
+    }
+    .step-panel-header h3 { margin: 0; font-size: 15px; flex: 1; }
+    .step-panel-body { padding: 18px 20px; }
+    .field-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px 20px;
+    }
+    @media (max-width: 900px) { .field-grid { grid-template-columns: 1fr; } }
+    .field-full { grid-column: 1 / -1; }
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 12px 20px;
+      background: #1f2937;
+      color: #fff;
+      border-radius: var(--radius);
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 100;
+    }
+    .toast.show { opacity: 1; }
+    .updated-at { font-size: 12px; color: var(--muted); margin-top: 8px; }
+    .step-panel-body--readonly {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .skill-tools-section {
+      padding: 14px 16px;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+    .skill-tool-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+    .skill-tool-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1d4ed8;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .skill-tool-badge:hover { background: #dbeafe; }
+    .skill-tools-hint { margin: 10px 0 0; font-size: 12px; color: var(--muted); }
+    .step-chip-tools {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .step-chip-tool {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+    .docs-usage-section {
+      padding: 14px 16px;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: var(--radius);
+    }
+    .doc-category {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px dashed #fde68a;
+    }
+    .doc-category:first-of-type { margin-top: 10px; padding-top: 0; border-top: none; }
+    .doc-category-head {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .doc-category-head strong { font-size: 13px; }
+    .doc-dir {
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .doc-mode {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fcd34d;
+    }
+    .doc-category-usage { margin: 0 0 8px; font-size: 12px; color: #57534e; line-height: 1.5; }
+    .doc-file-list {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+    .doc-file-list a { color: var(--primary); text-decoration: none; }
+    .doc-file-list a:hover { text-decoration: underline; }
+    .doc-file-list .virtual { color: var(--muted); list-style: disc; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">testcase</div>
+      <nav class="sidebar-nav">
+        <a href="./test_case_generator.html" class="sidebar-link">工作台</a>
+        <a href="./history_tasks.html" class="sidebar-link">历史记录</a>
+        <a href="./flow_management.html" class="sidebar-link active" aria-current="page">流程配置</a>
+        <a href="./skills_tools.html" class="sidebar-link">技能工具</a>
+      </nav>
+    </aside>
+
+    <main class="app-main">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">流程配置</h1>
+          <p class="page-desc">
+            查看测试用例生成各步骤使用的技能工具与 docs/ 文档清单（只读）。流程名称可修改后保存。
+          </p>
+          <p class="updated-at" id="updatedAt"></p>
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn" id="btnReset">恢复默认</button>
+          <button type="button" class="btn btn-primary" id="btnSave">保存配置</button>
+        </div>
+      </header>
+
+      <div class="flow-name-card">
+        <label class="form-label" for="flowName">流程名称</label>
+        <input type="text" id="flowName" />
+      </div>
+
+      <div class="steps-overview" id="stepsOverview"></div>
+      <div id="stepsContainer"></div>
+    </main>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="./js/testcase_api_base.js"></script>
+  <script>
+    const apiBase = resolveTestCaseApiBase();
+
+    const SKILL_TOOLS = {
+      feishu: {
+        name: "飞书文档解析",
+        icon: "📄",
+        path: "backend/integrations/feishu/",
+        anchor: "feishu",
+        desc: "将飞书文档/知识库链接转为 Markdown，供需求解析使用。",
+      },
+      database: {
+        name: "数据库只读查询",
+        icon: "🗄️",
+        path: "backend/integrations/database/",
+        anchor: "database",
+        desc: "只读列举表结构、采样数据，刷新表结构知识文档。",
+      },
+    };
+
+    /** 各步骤与 docs/ 目录的对应关系（说明 + 扫描键 / 固定路径） */
+    const STEP_DOCS_USAGE = {
+      step1: [
+        {
+          label: "检查项清单",
+          dir: "docs/checklist/",
+          mode: "自动择一",
+          usage: "按机构/渠道对接类型自动选用《机构需求检查项》或《渠道需求检查项》（见 docs/测试用例生成流程.md）。",
+          docOptionKey: "checklist_docs",
+        },
+        {
+          label: "业务知识（概要回写）",
+          dir: "docs/knowledge/biz/",
+          mode: "解析后更新",
+          usage: "需求解析完成后，根据确认的检查项刷新《渠道概要信息》或《机构概要信息》。",
+          docOptionKey: "knowledge_biz_docs",
+        },
+      ],
+      step2: [
+        {
+          label: "接口对接文档",
+          dir: "docs/knowledge/interface/",
+          mode: "规则匹配 / 上传",
+          usage: "机构按「类型」「流程概要」匹配 OSI 文档；渠道按「接口文档提供方」与渠道名称匹配（HOMO 或渠道专属文档）。",
+          docOptionKey: "knowledge_interface_docs",
+        },
+      ],
+      step3: [
+        {
+          label: "业务知识",
+          dir: "docs/knowledge/biz/",
+          mode: "术语注入",
+          usage: "生成时默认注入《业务术语》；概要类文档可选。",
+          docOptionKey: "knowledge_biz_docs",
+        },
+        {
+          label: "用例规则",
+          dir: "docs/rules/",
+          mode: "单选 + 自动追加",
+          usage: "单选 Demo 骨架；生成时自动追加《机构业务规则》或《渠道业务规则》至 Rule Docs。",
+          docOptionKey: "rule_docs",
+        },
+        {
+          label: "业务规则（自动）",
+          dir: "docs/rules/",
+          mode: "按类型追加",
+          usage: "《机构业务规则》《渠道业务规则》随对接类型注入，无需手选。",
+          paths: [
+            "docs/rules/机构业务规则.md",
+            "docs/rules/渠道业务规则.md",
+          ],
+        },
+        {
+          label: "流程涉及表",
+          dir: "docs/knowledge/db/",
+          mode: "条件注入",
+          usage: "勾选「数据库表」时：渠道对接用 HUB 用户流程涉及表，机构/APP 用 APP 用户流程涉及表。",
+          docOptionKey: "knowledge_db_docs",
+          pathsFilter: (p) => /用户流程涉及表/.test(p),
+        },
+        {
+          label: "全库表结构",
+          dir: "docs/knowledge/",
+          mode: "后台同步",
+          usage: "生成前若配置了 DB_QUERY_URL 且元数据指纹变化，自动更新该文档。",
+          paths: ["docs/knowledge/数据库表结构.md"],
+        },
+        {
+          label: "对接文档（任务态）",
+          dir: "（步骤2 产出）",
+          mode: "任务字段",
+          usage: "使用步骤2 已保存的 external_cooperation_markdown，非固定 docs 路径。",
+          virtual: true,
+        },
+      ],
+      step4: [
+        {
+          label: "生成结果",
+          dir: "—",
+          mode: "产出 / 入库",
+          usage: "展示 Agent 生成的测试用例 Markdown，采纳入 SQLite 用例库；不读取 docs 下模板文件。",
+          virtual: true,
+        },
+      ],
+    };
+
+    let pipelineConfig = null;
+    let docOptionsCache = null;
+
+    async function apiRequest(path, options = {}) {
+      const res = await fetch(`${apiBase}${path}`, {
+        headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+        ...options,
+      });
+      const text = await res.text();
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+      if (!res.ok) {
+        const msg = (data && data.detail)
+          ? (typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail))
+          : res.statusText;
+        throw new Error(msg || "请求失败");
+      }
+      return data;
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      setTimeout(() => el.classList.remove("show"), 2500);
+    }
+
+    function escapeHtml(s) {
+      return String(s || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function getStepSkillToolIds(step) {
+      const raw = step?.fields?.skill_tools;
+      if (Array.isArray(raw)) return raw.filter((id) => SKILL_TOOLS[id]);
+      if (typeof raw === "string" && raw.trim()) {
+        return raw.split(/[,，\s]+/).map((s) => s.trim()).filter((id) => SKILL_TOOLS[id]);
+      }
+      if (step?.key === "step1") return ["feishu"];
+      return [];
+    }
+
+    function normalizePipelineConfig(cfg) {
+      (cfg.steps || []).forEach((step) => {
+        if (step.key === "step1") {
+          const ids = getStepSkillToolIds(step);
+          step.fields = { ...(step.fields || {}), skill_tools: ids.length ? ids : ["feishu"] };
+        }
+      });
+      return cfg;
+    }
+
+    function docPreviewHref(path) {
+      return `./markdown_file_preview.html?path=${encodeURIComponent(path)}`;
+    }
+
+    function resolveCategoryPaths(cat) {
+      if (cat.virtual) return [];
+      let paths = [];
+      if (cat.docOptionKey && docOptionsCache) {
+        paths = docOptionsCache[cat.docOptionKey] || [];
+      }
+      if (cat.paths?.length) {
+        const extra = cat.paths.filter((p) => !paths.includes(p));
+        paths = [...paths, ...extra];
+      }
+      if (typeof cat.pathsFilter === "function") {
+        paths = paths.filter(cat.pathsFilter);
+      }
+      return paths.sort();
+    }
+
+    function renderDocsUsageHtml(stepKey) {
+      const categories = STEP_DOCS_USAGE[stepKey] || [];
+      if (!categories.length) {
+        return `<p class="skill-tools-hint">暂无 docs/ 文档说明。</p>`;
+      }
+      const blocks = categories
+        .map((cat) => {
+          const paths = resolveCategoryPaths(cat);
+          let filesHtml;
+          if (cat.virtual) {
+            filesHtml = `<li class="virtual">非 docs 目录静态文件</li>`;
+          } else if (!paths.length) {
+            filesHtml = `<li class="virtual">目录下暂无 .md 文件（请检查 docs/ 或运行后刷新页面）</li>`;
+          } else {
+            filesHtml = paths
+              .map((p) => {
+                const name = p.split("/").pop() || p;
+                return `<li><a href="${docPreviewHref(p)}" target="_blank" rel="noopener">${escapeHtml(name)}</a><span class="doc-dir"> — ${escapeHtml(p)}</span></li>`;
+              })
+              .join("");
+          }
+          return `
+            <div class="doc-category">
+              <div class="doc-category-head">
+                <strong>${escapeHtml(cat.label)}</strong>
+                <span class="doc-mode">${escapeHtml(cat.mode)}</span>
+                <span class="doc-dir">${escapeHtml(cat.dir)}</span>
+              </div>
+              <p class="doc-category-usage">${escapeHtml(cat.usage)}</p>
+              <ul class="doc-file-list">${filesHtml}</ul>
+            </div>`;
+        })
+        .join("");
+      return blocks;
+    }
+
+    function countStepDocs(stepKey) {
+      const cats = STEP_DOCS_USAGE[stepKey] || [];
+      let n = 0;
+      cats.forEach((cat) => {
+        if (cat.virtual) return;
+        n += resolveCategoryPaths(cat).length;
+      });
+      return n;
+    }
+
+    function renderSkillToolsHtml(toolIds) {
+      if (!toolIds.length) {
+        return `<p class="skill-tools-hint">未绑定技能工具。</p>`;
+      }
+      const badges = toolIds
+        .map((id) => {
+          const t = SKILL_TOOLS[id];
+          return `<a class="skill-tool-badge" href="./skills_tools.html#${t.anchor}" title="${escapeHtml(t.desc)}">${t.icon} ${escapeHtml(t.name)}</a>`;
+        })
+        .join("");
+      return `
+        <div class="skill-tool-list">${badges}</div>
+        <p class="skill-tools-hint">本步骤调用上述技能工具完成自动化处理，详见<a href="./skills_tools.html">技能工具</a>说明。</p>`;
+    }
+
+    function renderOverview() {
+      const el = document.getElementById("stepsOverview");
+      el.innerHTML = (pipelineConfig.steps || [])
+        .sort((a, b) => a.order - b.order)
+        .map(
+          (s) => `
+        <div class="step-chip">
+          <span class="step-chip-num">${s.order}</span>
+          <span class="step-chip-title">${escapeHtml(s.title)}</span>
+          <div class="step-chip-desc">${escapeHtml(s.description)}</div>
+          ${
+            getStepSkillToolIds(s).length
+              ? `<div class="step-chip-tools"><span class="step-chip-tool" style="background:#f3f4f6;color:#6b7280;border-color:#e5e7eb;">技能工具</span>${getStepSkillToolIds(s)
+                  .map((id) => `<span class="step-chip-tool">${escapeHtml(SKILL_TOOLS[id].name)}</span>`)
+                  .join("")}</div>`
+              : ""
+          }
+          ${
+            (() => {
+              const n = countStepDocs(s.key);
+              if (!(STEP_DOCS_USAGE[s.key] || []).length) return "";
+              const label = s.key === "step4" ? "无 docs 模板" : n > 0 ? `${n} 个文件` : "待扫描";
+              return `<div class="step-chip-tools"><span class="step-chip-tool" style="background:#fffbeb;color:#92400e;border-color:#fde68a;">docs</span><span class="step-chip-tool">${label}</span></div>`;
+            })()
+          }
+        </div>`
+        )
+        .join("");
+    }
+
+    function renderStepPanels() {
+      const container = document.getElementById("stepsContainer");
+      container.innerHTML = (pipelineConfig.steps || [])
+        .sort((a, b) => a.order - b.order)
+        .map((step) => {
+          const skillToolsBlock =
+            step.key === "step1"
+              ? `
+                  <div class="skill-tools-section">
+                    <label class="form-label">技能工具</label>
+                    ${renderSkillToolsHtml(getStepSkillToolIds(step))}
+                  </div>`
+              : "";
+
+          const docsUsageBlock = (STEP_DOCS_USAGE[step.key] || []).length
+            ? `
+                  <div class="docs-usage-section">
+                    <label class="form-label">docs/ 文档</label>
+                    ${renderDocsUsageHtml(step.key)}
+                  </div>`
+            : "";
+
+          return `
+            <section class="step-panel" data-step-key="${step.key}">
+              <div class="step-panel-header">
+                <span class="step-chip-num">${step.order}</span>
+                <h3>步骤 ${step.order}：${escapeHtml(step.title)}</h3>
+              </div>
+              <div class="step-panel-body step-panel-body--readonly">
+                ${skillToolsBlock}
+                ${docsUsageBlock}
+              </div>
+            </section>`;
+        })
+        .join("");
+    }
+
+    function collectConfigFromForm() {
+      const name = document.getElementById("flowName").value.trim();
+      return {
+        name: name || "测试用例生成流程",
+        steps: pipelineConfig.steps || [],
+      };
+    }
+
+    async function loadConfig() {
+      const [cfg, docOpts] = await Promise.all([
+        apiRequest("/pipeline-config"),
+        apiRequest("/doc-options").catch(() => ({})),
+      ]);
+      docOptionsCache = docOpts;
+      pipelineConfig = normalizePipelineConfig(cfg);
+      document.getElementById("flowName").value = pipelineConfig.name || "";
+      if (pipelineConfig.updated_at) {
+        const t = new Date(pipelineConfig.updated_at);
+        document.getElementById("updatedAt").textContent =
+          `最近更新：${Number.isNaN(t.getTime()) ? pipelineConfig.updated_at : t.toLocaleString()}`;
+      }
+      renderOverview();
+      renderStepPanels();
+    }
+
+    async function saveConfig() {
+      const payload = collectConfigFromForm();
+      pipelineConfig = await apiRequest("/pipeline-config", {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      });
+      document.getElementById("flowName").value = pipelineConfig.name || "";
+      if (pipelineConfig.updated_at) {
+        const t = new Date(pipelineConfig.updated_at);
+        document.getElementById("updatedAt").textContent =
+          `最近更新：${Number.isNaN(t.getTime()) ? pipelineConfig.updated_at : t.toLocaleString()}`;
+      }
+      pipelineConfig = normalizePipelineConfig(pipelineConfig);
+      try {
+        docOptionsCache = await apiRequest("/doc-options");
+      } catch { /* keep previous */ }
+      renderStepPanels();
+      renderOverview();
+      showToast("流程名称已保存");
+    }
+
+    async function resetConfig() {
+      if (!confirm("确定恢复为系统默认配置？当前未保存的修改将丢失。")) return;
+      await apiRequest("/pipeline-config/reset", { method: "POST" });
+      await loadConfig();
+      showToast("已恢复默认配置");
+    }
+
+    document.getElementById("btnSave").addEventListener("click", () => saveConfig().catch((e) => showToast(e.message)));
+    document.getElementById("btnReset").addEventListener("click", () => resetConfig().catch((e) => showToast(e.message)));
+
+    loadConfig().catch((err) => showToast("加载失败: " + err.message));
+  </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+pydantic
+python-dotenv
+requests
+sqlalchemy>=2.0
+pymysql
+langchain
+# Used as OpenAI-compatible client for DeepSeek chat API.
+langchain-openai

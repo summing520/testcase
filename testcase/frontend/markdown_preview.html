@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>testcase - Markdown 预览</title>
+  <style>
+    :root {
+      --text: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --card: #ffffff;
+      --primary: #2563eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", sans-serif;
+      color: var(--text);
+      background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+    }
+    .container {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      padding: 16px 18px 18px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .meta {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .btn {
+      border: 0;
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: #fff;
+      background: var(--primary);
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .btn.secondary { background: #475569; }
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--card);
+      padding: 14px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
+    .msg {
+      margin: 8px 0 12px;
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 13px;
+      display: none;
+    }
+    .msg.error {
+      border-color: #fecaca;
+      background: #fef2f2;
+      color: #b91c1c;
+    }
+    .markdown {
+      min-height: 240px;
+      line-height: 1.6;
+      word-break: break-word;
+    }
+    .markdown pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 10px;
+      border-radius: 8px;
+      overflow: auto;
+    }
+    .markdown code {
+      background: #f1f5f9;
+      border-radius: 4px;
+      padding: 2px 4px;
+    }
+    .markdown pre code {
+      background: transparent;
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1 id="pageTitle" style="margin:0;">testcase · Markdown 预览</h1>
+        <div id="meta" class="meta"></div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button id="editBtn" class="btn secondary" type="button">编辑</button>
+        <button id="xmindBtn" class="btn" type="button">xmind预览</button>
+        <button id="downloadBtn" class="btn secondary" type="button">下载 .md</button>
+        <a href="./history_tasks.html" class="btn">返回历史记录</a>
+      </div>
+    </div>
+    <div id="msg" class="msg"></div>
+    <div class="panel">
+      <div id="content" class="markdown"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="./js/testcase_api_base.js"></script>
+  <script>
+    const apiBase = resolveTestCaseApiBase();
+    let currentMarkdown = "";
+    let currentFileName = "preview.md";
+
+    function showMsg(text, isError = false) {
+      const el = document.getElementById("msg");
+      el.textContent = text;
+      el.style.display = "block";
+      el.classList.toggle("error", isError);
+    }
+
+    function kindLabel(kind) {
+      const mapping = {
+        "requirement": "飞书文档解析结果",
+        "check-items": "检查项确认结果",
+        "test-case": "测试用例",
+        "interface-doc": "接口文档"
+      };
+      return mapping[kind] || kind;
+    }
+
+    function adoptedTestCaseTitle(taskDetail) {
+      const title = taskDetail?.task?.adopted_test_case_title;
+      return typeof title === "string" ? title.trim() : "";
+    }
+
+    function resolveDisplayLabel(kind, taskDetail) {
+      if (kind === "test-case") {
+        const custom = adoptedTestCaseTitle(taskDetail);
+        if (custom) return custom;
+      }
+      return kindLabel(kind);
+    }
+
+    function safeDownloadBaseName(name, fallback) {
+      const cleaned = String(name || "").replace(/[\\/:*?"<>|]/g, "_").trim();
+      return cleaned || fallback;
+    }
+
+    function buildCheckItemsMarkdown(taskId, checkItems) {
+      if (!checkItems || checkItems.length === 0) {
+        return `# 检查项确认结果\n\n> task_id: ${taskId}\n\n暂无检查项。`;
+      }
+      const lines = [
+        "# 检查项确认结果",
+        "",
+        `> task_id: ${taskId}`,
+        ""
+      ];
+      checkItems.forEach(item => {
+        const value = (item.confirmed_text ?? item.matched_text ?? "").trim();
+        const src = item.match_source || "—";
+        const edited = item.is_edited ? "；已手动编辑" : "";
+        lines.push(`- **${item.item_text}** = ${value || "（未确认）"}（来源：${src}${edited}）`);
+      });
+      return lines.join("\n");
+    }
+
+    async function fetchTask(taskId) {
+      let resp;
+      try {
+        resp = await fetch(`${apiBase.replace(/\/$/, "")}/tasks/${encodeURIComponent(taskId)}`);
+      } catch (err) {
+        throw new Error(`无法连接后端 ${apiBase}：${err instanceof Error ? err.message : String(err)}`);
+      }
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(data.detail || `请求失败（HTTP ${resp.status}）`);
+      }
+      return data;
+    }
+
+    function renderMarkdown(markdown) {
+      currentMarkdown = markdown || "";
+      document.getElementById("content").innerHTML = marked.parse(currentMarkdown || "（无内容）");
+    }
+
+    function downloadMarkdown() {
+      const blob = new Blob([currentMarkdown || ""], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = currentFileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    async function init() {
+      const params = new URLSearchParams(window.location.search);
+      const taskId = params.get("task_id");
+      const kind = params.get("kind");
+      if (!taskId || !kind) {
+        showMsg("缺少 task_id 或 kind 参数。", true);
+        return;
+      }
+
+      const label = kindLabel(kind);
+      document.title = `testcase - ${label} - Markdown 预览`;
+      document.getElementById("meta").textContent = `任务ID: ${taskId} | 类型: ${label}`;
+      currentFileName = `${kind}-${taskId}.md`;
+
+      try {
+        const task = await fetchTask(taskId);
+        const displayLabel = resolveDisplayLabel(kind, task);
+        document.title = `testcase - ${displayLabel} - Markdown 预览`;
+        document.getElementById("pageTitle").textContent = displayLabel;
+        document.getElementById("meta").textContent = `任务ID: ${taskId} | ${displayLabel}`;
+        if (kind === "test-case") {
+          currentFileName = `${safeDownloadBaseName(displayLabel, kind + "-" + taskId)}.md`;
+        }
+
+        let markdown = "";
+        if (kind === "requirement") {
+          markdown = task.requirement_markdown || "# 飞书文档解析结果\n\n暂无内容。";
+        } else if (kind === "check-items") {
+          markdown = buildCheckItemsMarkdown(taskId, task.check_items || []);
+        } else if (kind === "test-case") {
+          markdown = task.generated_testcase_markdown || "# 测试用例\n\n暂无内容。";
+        } else if (kind === "interface-doc") {
+          markdown = task.external_cooperation_markdown || "# 接口文档\n\n暂无内容。";
+        } else {
+          throw new Error(`不支持的 kind: ${kind}`);
+        }
+
+        renderMarkdown(markdown);
+        showMsg("加载完成。");
+      } catch (err) {
+        showMsg(err instanceof Error ? err.message : String(err), true);
+      }
+    }
+
+    document.getElementById("downloadBtn").addEventListener("click", downloadMarkdown);
+    document.getElementById("editBtn").addEventListener("click", () => {
+      const params = new URLSearchParams(window.location.search);
+      const taskId = params.get("task_id");
+      const kind = params.get("kind");
+      if (!taskId || !kind) {
+        showMsg("缺少 task_id 或 kind 参数。", true);
+        return;
+      }
+      const url = `./markdown_edit.html?task_id=${encodeURIComponent(taskId)}&kind=${encodeURIComponent(kind)}`;
+      window.location.href = url;
+    });
+    document.getElementById("xmindBtn").addEventListener("click", () => {
+      const params = new URLSearchParams(window.location.search);
+      const taskId = params.get("task_id");
+      const kind = params.get("kind");
+      if (!taskId || !kind) {
+        showMsg("缺少 task_id 或 kind 参数。", true);
+        return;
+      }
+      const url = `./xmind_preview.html?task_id=${encodeURIComponent(taskId)}&kind=${encodeURIComponent(kind)}`;
+      window.location.href = url;
+    });
+    init();
+  </script>
+</body>
+</html>
